@@ -197,7 +197,7 @@ export async function runForgeGaugeLoop(
     await mkdir(artifactsDir, { recursive: true });
     const forgeArtifactPath = resolve(
       artifactsDir,
-      `forge-iter${iter}.md`,
+      `iter${iter}-forge.md`,
     );
     await writeFile(forgeArtifactPath, forgeResult.output);
 
@@ -233,7 +233,7 @@ export async function runForgeGaugeLoop(
     log.info('Saving gauge review...');
     const gaugeArtifactPath = resolve(
       artifactsDir,
-      `gauge-iter${iter}.md`,
+      `iter${iter}-gauge.md`,
     );
     await writeFile(gaugeArtifactPath, gaugeResult.rawOutput);
 

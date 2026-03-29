@@ -155,8 +155,8 @@ your-project/
 │   ├── tasks.json           # Parsed task list
 │   └── artifacts/           # Forge/Gauge outputs per stage
 │       ├── specification/
-│       │   ├── forge-iter1.md
-│       │   └── gauge-iter1.md
+│       │   ├── iter1-forge.md
+│       │   └── iter1-gauge.md
 │       └── ...
 └── specs/
     └── 001-feature-name/
