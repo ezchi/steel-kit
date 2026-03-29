@@ -1,0 +1,41 @@
+{
+  "name": "@steel-kit/core",
+  "version": "0.1.0",
+  "description": "Dual-agent AI development framework orchestrating multiple LLM CLIs",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "steel": "dist/src/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "keywords": [
+    "llm",
+    "ai",
+    "dual-agent",
+    "code-review",
+    "spec-driven-development"
+  ],
+  "author": "Enze Chi <enze.chi@gmail.com>",
+  "license": "AGPL-3.0",
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0",
+    "execa": "^9.5.2",
+    "inquirer": "^12.6.0",
+    "ora": "^8.2.0",
+    "yaml": "^2.7.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

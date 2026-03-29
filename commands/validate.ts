@@ -1,0 +1,60 @@
+import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { loadConfig, getSteelDir } from '../src/config.js';
+import {
+  loadState,
+  runForgeGaugeLoop,
+  advanceStage,
+} from '../src/workflow.js';
+import { log, die } from '../src/utils.js';
+
+export async function cmdValidate(): Promise<void> {
+  log.step('Starting validation stage...');
+  const projectRoot = process.cwd();
+  log.info('Loading config and state...');
+  const config = await loadConfig(projectRoot);
+  const state = await loadState(projectRoot);
+
+  if (state.currentStage !== 'validation') {
+    die(
+      `Cannot validate: current stage is '${state.currentStage}'. Expected 'validation'.`,
+    );
+  }
+
+  if (!state.specId) {
+    die('No active specification.');
+  }
+
+  log.info('Loading spec, plan, and constitution...');
+  const specPath = resolve(projectRoot, 'specs', state.specId, 'spec.md');
+  const planPath = resolve(projectRoot, 'specs', state.specId, 'plan.md');
+  const constitutionPath = resolve(getSteelDir(projectRoot), 'constitution.md');
+
+  const specContent = existsSync(specPath)
+    ? await readFile(specPath, 'utf-8')
+    : undefined;
+  const planContent = existsSync(planPath)
+    ? await readFile(planPath, 'utf-8')
+    : undefined;
+  const constitution = existsSync(constitutionPath)
+    ? await readFile(constitutionPath, 'utf-8')
+    : undefined;
+
+  log.info(`Validating implementation for: ${state.specId}`);
+  log.step('Starting Forge-Gauge validation loop...');
+
+  await runForgeGaugeLoop(projectRoot, config, state, {
+    specContent,
+    planContent,
+    constitution,
+    description:
+      'Run tests, verify the implementation against the specification, and report results.',
+  });
+
+  // Advance to done
+  log.step('Validation complete. Finalizing...');
+  await advanceStage(projectRoot, state, config);
+
+  log.success('Workflow finished!');
+}
