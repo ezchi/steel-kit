@@ -34,6 +34,7 @@ Check progress anytime with `steel status`.
 
 **Utility commands**:
 - `steel update` — update slash commands in the current project to the latest version from steel-kit
+- `steel clean` — remove artifacts of current workflow and reset state
 
 ## Installation
 
@@ -74,7 +75,7 @@ Run `steel init` inside your project (must be a git repo). You will be prompted 
 
 After selection, the tool will automatically:
 - Verify both CLIs are installed and authenticated (warns if not)
-- Create `.steel/` directory with `config.json`, `state.json`, and `constitution.md`
+- Create `.steel/` directory with `config.json`, `constitution.md`, and `.gitignore`
 - Auto-commit the initialization to git
 
 No LLM calls are made during init — it completes instantly.
@@ -143,28 +144,35 @@ Steel-Kit includes slash commands for use within Claude Code:
 - `/steel-status` — Check progress
 - `/steel-next` — Run the next stage
 - `/steel-run-all` — Run all remaining stages
+- `/steel-clean` — Remove artifacts and reset workflow
 
 ## Project Structure
 
 ```
 your-project/
 ├── .steel/
-│   ├── config.json          # Runtime configuration
-│   ├── state.json           # Workflow state machine
-│   ├── constitution.md      # Project principles
-│   ├── tasks.json           # Parsed task list
-│   └── artifacts/           # Forge/Gauge outputs per stage
-│       ├── specification/
-│       │   ├── iter1-forge.md
-│       │   └── iter1-gauge.md
-│       └── ...
+│   ├── .gitignore           # Ignores ephemeral state files
+│   ├── config.json          # Runtime configuration (committed)
+│   ├── constitution.md      # Project principles (committed)
+│   ├── state.json           # Workflow state machine (gitignored, auto-recovered)
+│   └── tasks.json           # Parsed task list (gitignored)
 └── specs/
     └── 001-feature-name/
         ├── spec.md           # Specification
         ├── clarifications.md # Resolved ambiguities
         ├── plan.md           # Implementation plan
         ├── tasks.md          # Task breakdown
-        └── validation.md     # Validation report
+        ├── validation.md     # Validation report
+        └── artifacts/        # Forge/Gauge outputs per stage
+            ├── specification/
+            │   ├── iter1-forge.md
+            │   └── iter1-gauge.md
+            ├── planning/
+            │   ├── iter1-forge.md
+            │   └── iter1-gauge.md
+            └── implementation/
+                ├── task1-iter1-forge.md
+                └── task1-iter1-gauge.md
 ```
 
 ## How the Forge-Gauge Loop Works
@@ -185,6 +193,16 @@ your-project/
 Git commits follow the pattern:
 - `forge(<stage>): iteration N output`
 - `gauge(<stage>): iteration N review — approve/revise`
+
+## State Recovery
+
+`state.json` and `tasks.json` are gitignored because they change every iteration and would cause merge conflicts. On a fresh checkout, the tool automatically reconstructs `state.json` from:
+
+1. **Git tags** — each completed stage is tagged `steel/<stage>-complete`
+2. **Spec files** — presence of `spec.md`, `plan.md`, etc. indicates stage completion
+3. **Branch name** — `spec/<specId>` convention identifies the active spec
+
+This means you can freely switch branches or do fresh clones without losing track of progress.
 
 ## License
 

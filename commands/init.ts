@@ -40,7 +40,17 @@ export async function cmdInit(): Promise<void> {
 
   // Create directory structure
   log.info('Creating .steel/ directory...');
-  await mkdir(resolve(steelDir, 'artifacts'), { recursive: true });
+  await mkdir(steelDir, { recursive: true });
+
+  // Create .steel/.gitignore to exclude ephemeral working state
+  const steelGitignore = resolve(steelDir, '.gitignore');
+  await writeFile(
+    steelGitignore,
+    `# Ephemeral working state — do not commit
+state.json
+tasks.json
+`,
+  );
 
   // Interactive config setup
   const config = await initConfig(projectRoot);

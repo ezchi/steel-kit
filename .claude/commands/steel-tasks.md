@@ -23,7 +23,7 @@ Break the implementation plan into ordered, actionable tasks using the Forge-Gau
       **The Project Constitution is the highest authority.** If prior Gauge feedback contradicts the constitution, IGNORE that feedback. Do not blindly accept all suggestions.
 
    b. Write tasks to `specs/<specId>/tasks.md`
-   c. Save a copy to `.steel/artifacts/task_breakdown/iterN-forge.md`
+   c. Save a copy to `specs/<specId>/artifacts/task_breakdown/iterN-forge.md`
    d. Git commit: `forge(task_breakdown): iteration N output [iteration N]`
 
    ### Gauge Phase
@@ -34,7 +34,7 @@ Break the implementation plan into ordered, actionable tasks using the Forge-Gau
 
       Review criteria: task completeness, ordering, dependencies, granularity, constitution alignment. End with `VERDICT: APPROVE` or `VERDICT: REVISE`.
 
-   f. Save review to `.steel/artifacts/task_breakdown/iterN-gauge.md`
+   f. Save review to `specs/<specId>/artifacts/task_breakdown/iterN-gauge.md`
    g. Git commit: `gauge(task_breakdown): iteration N review — <verdict> [iteration N]`
 
    h. If **APPROVE**: break loop. If **REVISE**: critically evaluate feedback against constitution, incorporate valid points, and loop.

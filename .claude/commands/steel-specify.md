@@ -33,7 +33,7 @@ Feature description: $ARGUMENTS
       **The Project Constitution is the highest authority.** If prior Gauge feedback contradicts the constitution, IGNORE that feedback and follow the constitution. Do not blindly accept all review suggestions.
 
    b. Write the spec to `specs/NNN-<name>/spec.md`
-   c. Save a copy to `.steel/artifacts/specification/iterN-forge.md`
+   c. Save a copy to `specs/<specId>/artifacts/specification/iterN-forge.md`
    d. Git commit: `forge(specification): iteration N output [iteration N]`
 
    ### Gauge Phase
@@ -49,7 +49,7 @@ Feature description: $ARGUMENTS
       - List issues with severity: BLOCKING / WARNING / NOTE
       - End with exactly: `VERDICT: APPROVE` or `VERDICT: REVISE`
 
-   g. Save the review to `.steel/artifacts/specification/iterN-gauge.md`
+   g. Save the review to `specs/<specId>/artifacts/specification/iterN-gauge.md`
    h. Git commit: `gauge(specification): iteration N review — <verdict> [iteration N]`
 
    i. Parse the verdict: look for `VERDICT: APPROVE` or `VERDICT: REVISE` in the review.

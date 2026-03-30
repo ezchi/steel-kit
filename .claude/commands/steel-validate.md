@@ -21,7 +21,7 @@ Validate the implementation against the specification using the Forge-Gauge loop
       - Performance check against NFRs
 
    b. Write validation report to `specs/<specId>/validation.md`
-   c. Save a copy to `.steel/artifacts/validation/iterN-forge.md`
+   c. Save a copy to `specs/<specId>/artifacts/validation/iterN-forge.md`
    d. Git commit: `forge(validation): iteration N output [iteration N]`
 
    ### Gauge Phase
@@ -32,7 +32,7 @@ Validate the implementation against the specification using the Forge-Gauge loop
 
       Review criteria: test coverage, requirement coverage, missed edge cases, constitution compliance. End with `VERDICT: APPROVE` or `VERDICT: REVISE`.
 
-   f. Save review to `.steel/artifacts/validation/iterN-gauge.md`
+   f. Save review to `specs/<specId>/artifacts/validation/iterN-gauge.md`
    g. Git commit: `gauge(validation): iteration N review — <verdict> [iteration N]`
 
    h. If **APPROVE**: break loop. If **REVISE**: incorporate feedback and loop.

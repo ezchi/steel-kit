@@ -13,6 +13,7 @@ import { cmdStatus } from '../commands/status.js';
 import { cmdNext } from '../commands/next.js';
 import { cmdRunAll } from '../commands/run-all.js';
 import { cmdUpdate } from '../commands/update.js';
+import { cmdClean } from '../commands/clean.js';
 
 const program = new Command();
 
@@ -82,5 +83,10 @@ program
   .command('update')
   .description('Update slash commands to latest version')
   .action(cmdUpdate);
+
+program
+  .command('clean')
+  .description('Remove artifacts and reset workflow state')
+  .action(cmdClean);
 
 program.parse();

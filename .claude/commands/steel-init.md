@@ -6,7 +6,12 @@ Initialize Steel-Kit in the current project.
 
 2. Create the directory structure:
    - `.steel/`
-   - `.steel/artifacts/`
+   - `.steel/.gitignore` with contents:
+     ```
+     # Ephemeral working state — do not commit
+     state.json
+     tasks.json
+     ```
 
 3. Ask the user which LLM provider to use for the **Forge** (primary agent): `claude`, `gemini`, or `codex`.
 

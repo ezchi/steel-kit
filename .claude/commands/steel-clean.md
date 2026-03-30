@@ -1,0 +1,26 @@
+Remove the artifacts of the current workflow and reset state so you can start fresh.
+
+## Steps
+
+1. Check if `.steel/` directory exists. If not, say "Project not initialized. Nothing to clean."
+
+2. Read `.steel/state.json` (or recover it if missing). Note the `specId`.
+
+3. Show what will be removed:
+   - `.steel/state.json`
+   - `.steel/tasks.json`
+   - `specs/<specId>/artifacts/` (iteration artifacts only, not spec/plan files)
+   - Git tags matching `steel/*-complete`
+
+4. Ask the user to confirm: "This will remove iteration artifacts for spec `<specId>` and reset workflow state. Continue?"
+
+5. If confirmed:
+   a. Delete `specs/<specId>/artifacts/` directory (if it exists)
+   b. Delete `.steel/state.json` (if it exists)
+   c. Delete `.steel/tasks.json` (if it exists)
+   d. Remove all `steel/*-complete` git tags (local only)
+   e. Reset `.steel/state.json` to initial state (constitution complete, specification pending)
+
+6. Git commit: `steel(clean): remove artifacts for <specId>`
+
+7. Tell the user: "Workflow reset. Run `/steel-specify` to start a new feature."

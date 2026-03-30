@@ -25,7 +25,7 @@ Implement all tasks using the Forge-Gauge loop. This is the stage where actual c
 
       **The Project Constitution is the highest authority.** If prior Gauge feedback contradicts the constitution, IGNORE that feedback. Do not blindly accept all suggestions — critically evaluate each one.
 
-   b. Save implementation notes to `.steel/artifacts/implementation/task<N>-iterM-forge.md` including:
+   b. Save implementation notes to `specs/<specId>/artifacts/implementation/task<N>-iterM-forge.md` including:
       - What files were created or modified
       - Key design decisions made
       - Tests added
@@ -64,7 +64,7 @@ Implement all tasks using the Forge-Gauge loop. This is the stage where actual c
       Reference specific files and line numbers where possible.
       End with exactly: `VERDICT: APPROVE` or `VERDICT: REVISE`
 
-   g. Save the code review to `.steel/artifacts/implementation/task<N>-iterM-gauge.md`
+   g. Save the code review to `specs/<specId>/artifacts/implementation/task<N>-iterM-gauge.md`
    h. Git commit: `gauge(implementation): task N iteration M review — <verdict> [iteration M]`
 
    i. If **APPROVE**: move to next task.

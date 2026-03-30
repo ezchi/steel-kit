@@ -21,7 +21,7 @@ Run clarification on the current specification using the Forge-Gauge loop.
       **The Project Constitution is the highest authority.** If prior Gauge feedback contradicts the constitution, IGNORE that feedback. Do not blindly accept all suggestions.
 
    b. Write clarifications to `specs/<specId>/clarifications.md`
-   c. Save a copy to `.steel/artifacts/clarification/iterN-forge.md`
+   c. Save a copy to `specs/<specId>/artifacts/clarification/iterN-forge.md`
    d. Git commit: `forge(clarification): iteration N output [iteration N]`
 
    ### Gauge Phase
@@ -32,7 +32,7 @@ Run clarification on the current specification using the Forge-Gauge loop.
 
       Review prompt must instruct: evaluate whether clarifications are complete, logical, align with the constitution, and resolve all ambiguities. End with `VERDICT: APPROVE` or `VERDICT: REVISE`.
 
-   f. Save review to `.steel/artifacts/clarification/iterN-gauge.md`
+   f. Save review to `specs/<specId>/artifacts/clarification/iterN-gauge.md`
    g. Git commit: `gauge(clarification): iteration N review — <verdict> [iteration N]`
 
    h. If **APPROVE**: break loop. If **REVISE**: critically evaluate feedback against constitution, incorporate valid points, and loop.

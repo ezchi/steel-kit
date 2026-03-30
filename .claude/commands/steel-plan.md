@@ -25,7 +25,7 @@ Generate an implementation plan using the Forge-Gauge loop.
       **The Project Constitution is the highest authority.** If prior Gauge feedback contradicts the constitution, IGNORE that feedback. Do not blindly accept all suggestions.
 
    b. Write the plan to `specs/<specId>/plan.md`
-   c. Save a copy to `.steel/artifacts/planning/iterN-forge.md`
+   c. Save a copy to `specs/<specId>/artifacts/planning/iterN-forge.md`
    d. Git commit: `forge(planning): iteration N output [iteration N]`
 
    ### Gauge Phase
@@ -36,7 +36,7 @@ Generate an implementation plan using the Forge-Gauge loop.
 
       Review criteria: spec coverage, architecture soundness, simplicity, risk assessment, testing strategy, alignment with constitution. End with `VERDICT: APPROVE` or `VERDICT: REVISE`.
 
-   f. Save review to `.steel/artifacts/planning/iterN-gauge.md`
+   f. Save review to `specs/<specId>/artifacts/planning/iterN-gauge.md`
    g. Git commit: `gauge(planning): iteration N review — <verdict> [iteration N]`
 
    h. If **APPROVE**: break loop. If **REVISE**: critically evaluate feedback against constitution, incorporate valid points, and loop.
