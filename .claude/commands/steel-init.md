@@ -2,9 +2,9 @@ Initialize Steel-Kit in the current project.
 
 ## Steps
 
-1. Check if `.steel/` directory already exists. If it does, stop and inform the user.
+1. Check if `.steel/` directory already exists. If it does, check each file that would be created (`.steel/.gitignore`, `.steel/config.json`, `.steel/constitution.md`, `.steel/state.json`). For each file that already exists, ask the user whether to overwrite it. Skip files the user declines to overwrite.
 
-2. Create the directory structure:
+2. Create the directory structure (skip if already exists):
    - `.steel/`
    - `.steel/.gitignore` with contents:
      ```
