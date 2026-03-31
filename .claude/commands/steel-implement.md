@@ -25,10 +25,30 @@ Implement all tasks using the Forge-Gauge loop. This is the stage where actual c
 
       **The Project Constitution is the highest authority.** If prior Gauge feedback contradicts the constitution, IGNORE that feedback. Do not blindly accept all suggestions — critically evaluate each one.
 
-   b. Save implementation notes to `specs/<specId>/artifacts/implementation/task<N>-iterM-forge.md` including:
-      - What files were created or modified
-      - Key design decisions made
-      - Tests added
+   b. **Before handing off to the Gauge**, write `specs/<specId>/artifacts/implementation/task<N>-iterM-forge.md` with this structure:
+
+      ```markdown
+      # Task N: <title> — Forge Iteration M
+
+      ## Files Changed
+      - `path/to/file.sv` — created | modified | deleted (one-line reason)
+      - ...
+
+      ## Key Implementation Decisions
+      - Decision 1: what was chosen and why (e.g., "Used FIFO over shift register because spec requires variable depth")
+      - ...
+
+      ## Deviations from Plan
+      - Deviation 1: what differs from `plan.md` and why (e.g., "Plan called for separate reset module but combined into top-level because...")
+      - (or "None — implementation follows the plan exactly.")
+
+      ## Tests Added
+      - `path/to/test_file` — what it covers
+      - ...
+      ```
+
+      This artifact is critical for the Gauge review and later retrospect — do not skip it.
+
    c. Git commit: `forge(implementation): task N iteration M output [iteration M]`
 
    ### Gauge Phase — CODE REVIEW
