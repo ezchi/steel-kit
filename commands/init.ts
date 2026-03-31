@@ -1,13 +1,13 @@
 import { mkdir, writeFile, readdir, readFile, copyFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { initConfig, getSteelDir } from '../src/config.js';
+import { initConfig, getSteelDir, getConfigPath } from '../src/config.js';
 import { commitStep } from '../src/git-ops.js';
 import {
   createInitialState,
   saveState,
 } from '../src/workflow.js';
-import { log, die, STEEL_KIT_ROOT } from '../src/utils.js';
+import { log, die, confirm, STEEL_KIT_ROOT } from '../src/utils.js';
 import { getProvider } from '../src/providers/index.js';
 
 const PLACEHOLDER_CONSTITUTION = `# Project Constitution
@@ -32,28 +32,33 @@ export async function cmdInit(): Promise<void> {
   const projectRoot = process.cwd();
   const steelDir = getSteelDir(projectRoot);
 
-  if (existsSync(steelDir)) {
-    die('.steel/ directory already exists. Project is already initialized.');
-  }
+  const reinit = existsSync(steelDir);
 
-  log.info('Initializing Steel-Kit...');
+  log.info(reinit ? 'Re-initializing Steel-Kit...' : 'Initializing Steel-Kit...');
 
   // Create directory structure
-  log.info('Creating .steel/ directory...');
+  if (!reinit) {
+    log.info('Creating .steel/ directory...');
+  }
   await mkdir(steelDir, { recursive: true });
 
   // Create .steel/.gitignore to exclude ephemeral working state
   const steelGitignore = resolve(steelDir, '.gitignore');
-  await writeFile(
-    steelGitignore,
-    `# Ephemeral working state — do not commit
+  if (await shouldWriteFile(steelGitignore)) {
+    await writeFile(
+      steelGitignore,
+      `# Ephemeral working state — do not commit
 state.json
 tasks.json
 `,
-  );
+    );
+  }
 
   // Interactive config setup
-  const config = await initConfig(projectRoot);
+  const configPath = getConfigPath(projectRoot);
+  const config = await initConfig(projectRoot, {
+    skipWrite: existsSync(configPath) && !(await shouldWriteFile(configPath)),
+  });
 
   // Verify providers are available
   log.info('Checking LLM provider availability...');
@@ -79,8 +84,10 @@ tasks.json
 
   // Create placeholder constitution
   const constitutionPath = resolve(steelDir, 'constitution.md');
-  await writeFile(constitutionPath, PLACEHOLDER_CONSTITUTION);
-  log.success('Created .steel/constitution.md (edit this to define your project principles)');
+  if (await shouldWriteFile(constitutionPath)) {
+    await writeFile(constitutionPath, PLACEHOLDER_CONSTITUTION);
+    log.success('Created .steel/constitution.md (edit this to define your project principles)');
+  }
 
   // Install Claude Code slash commands
   await installSlashCommands(projectRoot);
@@ -90,7 +97,10 @@ tasks.json
   state.stages.constitution.completedAt = new Date().toISOString();
   state.currentStage = 'specification';
   state.stages.specification.status = 'pending';
-  await saveState(projectRoot, state);
+  const statePath = resolve(steelDir, 'state.json');
+  if (await shouldWriteFile(statePath)) {
+    await saveState(projectRoot, state);
+  }
 
   // Git commit
   log.info('Committing initialization...');
@@ -110,6 +120,15 @@ tasks.json
   log.info('  2. Run: steel constitution  (generate project principles via LLM)');
   log.info('     Or edit .steel/constitution.md manually');
   log.info('  3. Run: steel specify "<feature description>"');
+}
+
+async function shouldWriteFile(filePath: string): Promise<boolean> {
+  if (!existsSync(filePath)) return true;
+  const relPath = filePath.includes('.steel/')
+    ? '.steel/' + filePath.split('.steel/')[1]
+    : filePath;
+  log.warn(`${relPath} already exists.`);
+  return confirm(`Overwrite ${relPath}?`);
 }
 
 async function installSlashCommands(projectRoot: string): Promise<void> {

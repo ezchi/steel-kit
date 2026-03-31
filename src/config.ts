@@ -99,7 +99,10 @@ function mergeConfig(base: SteelConfig, override: Partial<any>): SteelConfig {
   };
 }
 
-export async function initConfig(projectRoot: string): Promise<SteelConfig> {
+export async function initConfig(
+  projectRoot: string,
+  opts?: { skipWrite?: boolean },
+): Promise<SteelConfig> {
   const forgeProvider = await select({
     message: 'Select Forge (primary) LLM provider:',
     choices: PROVIDERS.map((p) => ({ name: p, value: p })),
@@ -116,11 +119,15 @@ export async function initConfig(projectRoot: string): Promise<SteelConfig> {
     gauge: { provider: gaugeProvider },
   };
 
-  const steelDir = getSteelDir(projectRoot);
-  await mkdir(steelDir, { recursive: true });
-  await writeFile(getConfigPath(projectRoot), JSON.stringify(config, null, 2));
+  if (!opts?.skipWrite) {
+    const steelDir = getSteelDir(projectRoot);
+    await mkdir(steelDir, { recursive: true });
+    await writeFile(getConfigPath(projectRoot), JSON.stringify(config, null, 2));
+    log.success(`Config saved to .steel/config.json`);
+  } else {
+    log.info('Skipped overwriting .steel/config.json');
+  }
 
-  log.success(`Config saved to .steel/config.json`);
   return config;
 }
 
