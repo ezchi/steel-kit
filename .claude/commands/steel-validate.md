@@ -12,15 +12,27 @@ Validate the implementation against the specification using the Forge-Gauge loop
 3. **FORGE-GAUGE LOOP** (max iterations from config):
 
    ### Forge Phase (you are the Forge)
-   a. Validate the implementation:
-      - Run all tests and report results
-      - Verify each acceptance criterion from the spec
-      - Check requirement coverage (map FR-* to implementation)
-      - Test edge cases and error scenarios
+
+   a. **Run tests first — before any static analysis.** Discover and execute all available test suites:
+      1. Detect the project's test runner(s) by checking for:
+         - `Makefile` / `CMakeLists.txt` targets (e.g., `make test`, `ctest`)
+         - `package.json` scripts (e.g., `npm test`)
+         - `pytest` / `cocotb` / `unittest` in Python projects
+         - Verilator simulation targets (e.g., `make sim`, `ctest --test-dir build`)
+         - Any test runner referenced in the constitution or plan
+      2. Run each test suite. Capture the **full stdout/stderr** and the **exit code**.
+      3. If a test runner is not installed or a build step is missing, attempt to build first (e.g., `cmake --build build`). If it still fails, record the error — do not silently skip.
+      4. Save all test output verbatim to `specs/<specId>/artifacts/validation/iterN-test-output.txt`
+      5. Git commit: `forge(validation): iteration N test output [iteration N]`
+
+   b. **Static analysis and manual verification** — using the test results from (a) plus code reading:
+      - Verify each acceptance criterion from the spec (cite test results where applicable)
+      - Check requirement coverage (map FR-* to implementation AND to tests)
+      - Identify untested edge cases and error scenarios
       - Security review (OWASP top 10)
       - Performance check against NFRs
 
-   b. For each validation item, assign one of these verdicts:
+   c. For each validation item, assign one of these verdicts:
       - **PASS** — requirement met and verified
       - **FAIL** — requirement not met or broken
       - **DEFERRED** — cannot be validated now (see policy below)
@@ -44,7 +56,7 @@ Validate the implementation against the specification using the Forge-Gauge loop
       - **Risk**: what could go wrong if this is never validated
       - **Test plan**: exact steps to validate once the dependency is available
 
-   c. Write validation report to `specs/<specId>/validation.md` with this structure:
+   d. Write validation report to `specs/<specId>/validation.md` with this structure:
 
       ```markdown
       # Validation Report
@@ -52,8 +64,14 @@ Validate the implementation against the specification using the Forge-Gauge loop
       ## Summary
       - PASS: N | FAIL: N | DEFERRED: N
 
+      ## Test Execution
+      | Suite | Command | Exit Code | Pass/Fail/Skip |
+      |-------|---------|-----------|----------------|
+      (one row per test suite executed; link to full output in artifacts)
+
       ## Results
       (one entry per requirement/acceptance criterion with PASS/FAIL/DEFERRED verdict)
+      (for PASS items backed by tests, cite the specific test name and result)
 
       ## Deferred Items
       (for each DEFERRED item: Requirement, Reason, Risk, Test plan)
@@ -64,21 +82,41 @@ Validate the implementation against the specification using the Forge-Gauge loop
       ## Performance Review
       ...
       ```
-   c. Save a copy to `specs/<specId>/artifacts/validation/iterN-forge.md`
-   d. Git commit: `forge(validation): iteration N output [iteration N]`
 
-   ### Gauge Phase
-   e. Call the Gauge LLM (per config) to review the validation results. **IMPORTANT: Run the command from the project's working directory, NOT /tmp.**
-      - If gauge is `gemini`: run `gemini -p "<review prompt>"` in the current project directory
-      - If gauge is `codex`: run `codex exec "<review prompt>"` in the current project directory
-      - If gauge is `claude`: Review critically yourself as the Gauge role.
+   e. Save a copy to `specs/<specId>/artifacts/validation/iterN-forge.md`
+   f. Git commit: `forge(validation): iteration N output [iteration N]`
 
-      Review criteria: test coverage, requirement coverage, missed edge cases, constitution compliance. **Also verify every DEFERRED item against the DEFERRED policy** — reject any that should be FAIL. End with `VERDICT: APPROVE` or `VERDICT: REVISE`.
+   ### Gauge Phase — FACTUAL VERIFICATION
 
-   f. Save review to `specs/<specId>/artifacts/validation/iterN-gauge.md`
-   g. Git commit: `gauge(validation): iteration N review — <verdict> [iteration N]`
+   The Gauge's job is NOT to rubber-stamp the report. It must independently verify that the Forge's claims are factually correct.
 
-   h. If **APPROVE**: break loop. If **REVISE**: incorporate feedback and loop.
+   g. **Build the Gauge verification prompt** that includes ALL of the following:
+      - The full validation report from the Forge
+      - The spec (`spec.md`) — so the Gauge can cross-check requirement mappings
+      - The plan (`plan.md`) — so the Gauge can verify deviation claims
+      - The verbatim test output from `specs/<specId>/artifacts/validation/iterN-test-output.txt`
+      - The actual source files referenced by PASS claims (read them, don't summarize)
+
+   h. Call the Gauge LLM (per config) to verify. **IMPORTANT: Run the command from the project's working directory, NOT /tmp.**
+      - If gauge is `gemini`: run `gemini -p "<verification prompt>"` in the current project directory
+      - If gauge is `codex`: run `codex exec "<verification prompt>"` in the current project directory
+      - If gauge is `claude`: Switch to Gauge role and perform independent verification yourself. Be adversarial.
+
+      The Gauge MUST perform these checks:
+      1. **PASS claims**: For each PASS, verify the cited evidence actually proves the requirement is met. Read the relevant source/test files — does the code actually do what the Forge says? Did the tests actually pass?
+      2. **FAIL accuracy**: For each FAIL, confirm the failure is real and correctly described. Is the root cause accurate?
+      3. **DEFERRED legitimacy**: For each DEFERRED, verify against the DEFERRED policy. Is the dependency truly out-of-scope? Is the code path truly isolated? Reject any that should be FAIL.
+      4. **Missing coverage**: Are there requirements from the spec that the Forge didn't address at all? Flag any gaps.
+      5. **Test validity**: Do the tests actually test what they claim? Are there tests that pass trivially (e.g., always-true assertions, mocked-away logic)?
+
+      For each disputed claim, cite the specific file/line/test that contradicts the Forge's report.
+
+      End with exactly: `VERDICT: APPROVE` or `VERDICT: REVISE`
+
+   i. Save verification report to `specs/<specId>/artifacts/validation/iterN-gauge.md`
+   j. Git commit: `gauge(validation): iteration N review — <verdict> [iteration N]`
+
+   k. If **APPROVE**: break loop. If **REVISE**: the Forge must fix disputed claims — re-run tests, re-read code, correct the report. Do not just reword — reverify.
 
 4. **If any DEFERRED items exist**, warn the user before advancing:
 

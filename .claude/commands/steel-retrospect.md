@@ -33,6 +33,7 @@ Review the entire workflow to extract learnings, memory candidates, and skill im
       - **Type**: `user`, `feedback`, `project`, or `reference`
       - **Name**: short identifier
       - **Content**: what to remember and why
+      - **Evidence**: cite the specific artifact(s) that support this memory. Use the format `artifacts/<stage>/iterN-{forge|gauge}.md:section` or quote the relevant passage. A memory without evidence is not actionable and will be rejected by the Gauge.
       - **Rationale**: why this is non-obvious and worth persisting across conversations
 
       Focus on:
@@ -57,14 +58,17 @@ Review the entire workflow to extract learnings, memory candidates, and skill im
 
       For each proposed update, provide:
       - **Skill**: which skill or command file
-      - **Change**: what to add, modify, or remove
-      - **Evidence**: which artifact/iteration showed the need
+      - **Issue found**: what went wrong or what's missing — cite the specific artifact and quote the relevant passage (e.g., `artifacts/implementation/task2-iter3-gauge.md` flagged "missing reset assertion" twice → the skill should include a reset checklist)
+      - **Proposed change**: what to add, modify, or remove — be specific enough that someone could apply the edit (e.g., "Add to `sv-gen` template section: 'Include synchronous reset assertion for every sequential block'")
+      - **Expected impact**: what this change would have prevented or improved in the current workflow (e.g., "Would have eliminated 2 revision cycles in task 2 implementation")
 
       **## Process Improvements**
-      - Bottlenecks: which stages took the most iterations and why?
-      - Forge-Gauge dynamics: did the Gauge catch real issues or create churn?
-      - Constitution gaps: should any principles be added or refined?
-      - Workflow gaps: missing stages or unnecessary stages?
+      For each improvement, provide the issue, evidence, and proposed fix:
+
+      - **Bottlenecks**: which stages took the most iterations? For each, cite the iteration artifacts that show the back-and-forth and identify the root cause (e.g., "Specification took 4 iterations because the Gauge kept requesting NFRs that the constitution doesn't require — see `artifacts/specification/iter2-gauge.md` through `iter4-gauge.md`")
+      - **Forge-Gauge dynamics**: did the Gauge catch real issues or create churn? Classify each REVISE verdict as: (a) caught a real defect, (b) enforced a valid standard, or (c) unnecessary churn. Cite the specific `iterN-gauge.md` for each.
+      - **Constitution gaps**: should any principles be added or refined? Quote the artifact passage that exposed the gap (e.g., "Plan stage had no guidance on error handling strategy — `artifacts/planning/iter2-gauge.md` flagged this")
+      - **Workflow gaps**: missing stages or unnecessary stages? Ground in evidence from this run.
 
    b. Write the report to `specs/<specId>/retrospect.md`
    c. Save a copy to `specs/<specId>/artifacts/retrospect/iterN-forge.md`
@@ -76,11 +80,12 @@ Review the entire workflow to extract learnings, memory candidates, and skill im
       - If gauge is `codex`: run `codex exec "<review prompt>"` in the current project directory
       - If gauge is `claude`: Review critically yourself as the Gauge role.
 
-      Review criteria:
-      - Are the proposed memories genuinely non-obvious and useful across conversations?
-      - Are skill update suggestions specific and actionable (not vague)?
-      - Are process improvements grounded in evidence from the artifacts?
-      - Is anything important missing from the analysis?
+      The Gauge MUST verify every claim against the cited evidence:
+      1. **Memories**: For each proposed memory, read the cited artifact. Does the evidence actually support the claim? Is the memory truly non-obvious? Reject any memory where the evidence is missing, misquoted, or doesn't support the conclusion.
+      2. **Skill updates**: For each proposed update, read the cited artifact. Did the issue actually occur as described? Is the proposed change specific enough to apply? Would it actually have prevented the issue? Reject vague suggestions like "improve error handling guidance".
+      3. **Process improvements**: For each bottleneck or dynamic claim, verify the iteration count and the characterization of each REVISE verdict against the actual gauge artifacts. Reject any mischaracterization (e.g., calling a legitimate defect catch "churn").
+      4. **Missing insights**: Are there patterns in the artifacts that the Forge missed? (e.g., a recurring Gauge complaint that was never surfaced, or a skill that was clearly needed but not invoked)
+
       End with `VERDICT: APPROVE` or `VERDICT: REVISE`.
 
    f. Save review to `specs/<specId>/artifacts/retrospect/iterN-gauge.md`
