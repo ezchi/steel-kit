@@ -42,4 +42,6 @@ Run clarification on the current specification using the Forge-Gauge loop.
    - If approved: update state to `planning` stage and tag `steel/clarification-complete`.
    - If not: leave state as-is.
 
-5. Tell the user: "Run `/steel-plan` to generate the implementation plan."
+5. **Track skills used**: Update `.steel/state.json` field `skillsUsed.clarification` with an array of skill names you invoked during this stage. If no skills were used, set it to `[]`.
+
+6. Tell the user: "Run `/steel-plan` to generate the implementation plan."

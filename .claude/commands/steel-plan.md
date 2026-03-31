@@ -45,4 +45,6 @@ Generate an implementation plan using the Forge-Gauge loop.
 
 5. Update `.steel/state.json`, tag `steel/planning-complete`.
 
-6. Tell the user: "Plan complete. Run `/steel-tasks` to break down tasks."
+6. **Track skills used**: Update `.steel/state.json` field `skillsUsed.planning` with an array of skill names you invoked during this stage. If no skills were used, set it to `[]`.
+
+7. Tell the user: "Plan complete. Run `/steel-tasks` to break down tasks."

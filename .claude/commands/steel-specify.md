@@ -62,4 +62,6 @@ Feature description: $ARGUMENTS
    - If approved: update state to `clarification` stage and tag `steel/specification-complete`.
    - If not: leave state as-is so user can re-run.
 
-8. Show a summary of the specification.
+8. **Track skills used**: Update `.steel/state.json` field `skillsUsed.specification` with an array of skill names you invoked during this stage (e.g., `["systemverilog-core", "sv-gen"]`). If no skills were used, set it to `[]`.
+
+9. Show a summary of the specification.

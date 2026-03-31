@@ -23,8 +23,11 @@ Show the current Steel-Kit workflow status.
    [    ] Task Breakdown
    [    ] Implementation
    [    ] Validation
+   [    ] Retrospect
 
    Current: Clarification (iteration 2)
    ```
 
 4. Use `[done]` for complete, `[>>>]` for in_progress, `[   ]` for pending.
+
+5. If `skillsUsed` exists in state.json, show a "Skills Used" section listing skills per stage.

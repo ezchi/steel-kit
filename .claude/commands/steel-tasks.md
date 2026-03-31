@@ -48,4 +48,6 @@ Break the implementation plan into ordered, actionable tasks using the Forge-Gau
 
 6. Update `.steel/state.json`, tag `steel/task_breakdown-complete`.
 
-7. Tell the user: "Tasks ready. Run `/steel-implement` to start implementation."
+7. **Track skills used**: Update `.steel/state.json` field `skillsUsed.task_breakdown` with an array of skill names you invoked during this stage. If no skills were used, set it to `[]`.
+
+8. Tell the user: "Tasks ready. Run `/steel-implement` to start implementation."

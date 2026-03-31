@@ -12,5 +12,6 @@ Run the next stage in the Steel-Kit workflow.
    - `task_breakdown` → follow the steps in `/steel-tasks`
    - `implementation` → follow the steps in `/steel-implement`
    - `validation` → follow the steps in `/steel-validate`
+   - `retrospect` → follow the steps in `/steel-retrospect`
 
 4. If all stages are complete, run `/steel-status` and say "Workflow complete!"

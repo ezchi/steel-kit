@@ -12,6 +12,7 @@ Run all remaining stages in the Steel-Kit workflow automatically.
    - `task_breakdown` → `/steel-tasks` steps
    - `implementation` → `/steel-implement` steps
    - `validation` → `/steel-validate` steps
+   - `retrospect` → `/steel-retrospect` steps
 
 4. Between each stage, re-read `.steel/state.json` to confirm the stage advanced. If it didn't (e.g., human approval was declined at a gate), stop and inform the user.
 

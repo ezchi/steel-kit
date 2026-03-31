@@ -37,6 +37,8 @@ Validate the implementation against the specification using the Forge-Gauge loop
 
    h. If **APPROVE**: break loop. If **REVISE**: incorporate feedback and loop.
 
-4. Auto-advance to done. **No human approval needed.** Update `.steel/state.json`, tag `steel/validation-complete`.
+4. **Track skills used**: Update `.steel/state.json` field `skillsUsed.validation` with an array of skill names you invoked during this stage. If no skills were used, set it to `[]`.
 
-5. Show final summary: "Workflow complete! All stages passed."
+5. Auto-advance to `retrospect` stage. **No human approval needed.** Update `.steel/state.json`, tag `steel/validation-complete`.
+
+6. Tell the user: "Validation complete. Run `/steel-retrospect` to review the workflow."

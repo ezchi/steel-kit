@@ -76,4 +76,6 @@ Implement all tasks using the Forge-Gauge loop. This is the stage where actual c
 
 5. Update `.steel/state.json`, tag `steel/implementation-complete`.
 
-6. Tell the user: "Implementation complete. Run `/steel-validate` to verify."
+6. **Track skills used**: Update `.steel/state.json` field `skillsUsed.implementation` with an array of ALL skill names you invoked during this stage (across all tasks). For example: `["systemverilog-core", "sv-gen", "cocotb-verilator-tests", "verilator-cmake"]`. If no skills were used, set it to `[]`.
+
+7. Tell the user: "Implementation complete. Run `/steel-validate` to verify."
