@@ -20,22 +20,44 @@ Run clarification on the current specification using the Forge-Gauge loop.
 
       **The Project Constitution is the highest authority.** If prior Gauge feedback contradicts the constitution, IGNORE that feedback. Do not blindly accept all suggestions.
 
-   b. Write clarifications to `specs/<specId>/clarifications.md`
-   c. Save a copy to `specs/<specId>/artifacts/clarification/iterN-forge.md`
-   d. Git commit: `forge(clarification): iteration N output [iteration N]`
+   b. Write clarifications to `specs/<specId>/clarifications.md`. For each clarification, mark whether it requires a spec change:
+      - **[SPEC UPDATE]** — the clarification changes, adds, or removes a requirement in spec.md
+      - **[NO SPEC CHANGE]** — the clarification only adds context without changing the spec
+
+   c. If any clarifications are marked **[SPEC UPDATE]**, update `specs/<specId>/spec.md`:
+      - Apply each spec-affecting clarification directly to the relevant section (FR-*, NFR, acceptance criteria, user stories, etc.)
+      - Remove resolved `[NEEDS CLARIFICATION]` markers
+      - Add a `## Changelog` section at the bottom of spec.md (or append to it if it exists) with entries:
+        ```
+        - [Clarification iterN] FR-X: <what changed and why>
+        ```
+      - Do NOT rewrite unchanged sections — only edit what the clarifications require
+
+   d. Save a copy of clarifications to `specs/<specId>/artifacts/clarification/iterN-forge.md`
+   e. If spec.md was modified, save a copy to `specs/<specId>/artifacts/clarification/iterN-spec-diff.md` containing only the diff (before → after for each changed section)
+   f. Git commit: `forge(clarification): iteration N output [iteration N]`
 
    ### Gauge Phase
-   e. Call the Gauge LLM (per config) to review the clarifications. **IMPORTANT: Run the command from the project's working directory, NOT /tmp.**
+   g. Call the Gauge LLM (per config) to review. **IMPORTANT: Run the command from the project's working directory, NOT /tmp.**
       - If gauge is `gemini`: run `gemini -p "<review prompt>"` in the current project directory
       - If gauge is `codex`: run `codex exec "<review prompt>"` in the current project directory
       - If gauge is `claude`: Review critically yourself as the Gauge role.
 
-      Review prompt must instruct: evaluate whether clarifications are complete, logical, align with the constitution, and resolve all ambiguities. End with `VERDICT: APPROVE` or `VERDICT: REVISE`.
+      The Gauge must review BOTH the clarifications AND the updated spec.md:
+      1. **Clarifications**: Are they complete, logical, and aligned with the constitution? Do they resolve all ambiguities?
+      2. **Spec updates**: For each [SPEC UPDATE] clarification, verify the change was correctly applied to spec.md. Check that:
+         - The updated requirement is consistent with the rest of the spec
+         - No unrelated sections were modified
+         - The changelog entry accurately describes the change
+         - No requirements were silently dropped or weakened
+      3. **Missed updates**: Are there clarifications marked [NO SPEC CHANGE] that should actually update the spec?
 
-   f. Save review to `specs/<specId>/artifacts/clarification/iterN-gauge.md`
-   g. Git commit: `gauge(clarification): iteration N review — <verdict> [iteration N]`
+      End with `VERDICT: APPROVE` or `VERDICT: REVISE`.
 
-   h. If **APPROVE**: break loop. If **REVISE**: critically evaluate feedback against constitution, incorporate valid points, and loop.
+   h. Save review to `specs/<specId>/artifacts/clarification/iterN-gauge.md`
+   i. Git commit: `gauge(clarification): iteration N review — <verdict> [iteration N]`
+
+   j. If **APPROVE**: break loop. If **REVISE**: critically evaluate feedback against constitution, incorporate valid points, and loop.
 
 4. After the loop completes, ask the user: **"Approve clarifications and advance to planning?"**
    - This is a HUMAN APPROVAL GATE — do not skip it.
