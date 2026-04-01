@@ -18,7 +18,6 @@ Break the implementation plan into ordered, actionable tasks using the Forge-Gau
       - Files to create or modify
       - Dependencies on other tasks (by number)
       - Verification criteria
-      - Mark parallelizable tasks with [P]
 
       **The Project Constitution is the highest authority.** If prior Gauge feedback contradicts the constitution, IGNORE that feedback. Do not blindly accept all suggestions.
 
@@ -41,7 +40,7 @@ Break the implementation plan into ordered, actionable tasks using the Forge-Gau
 
 4. Also save a JSON version to `.steel/tasks.json` with structure:
    ```json
-   [{ "id": 1, "title": "...", "description": "...", "parallel": false }, ...]
+   [{ "id": 1, "title": "...", "description": "..." }, ...]
    ```
 
 5. Auto-advance to `implementation` stage. **No human approval needed.**

@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { loadConfig, getSteelDir } from '../src/config.js';
+import { getSpecDir, getSteelDir, loadConfig } from '../src/config.js';
 import {
   loadState,
   runForgeGaugeLoop,
@@ -28,7 +28,7 @@ export async function cmdClarify(): Promise<void> {
 
   // Load spec and constitution
   log.info('Loading spec and constitution...');
-  const specPath = resolve(projectRoot, 'specs', state.specId, 'spec.md');
+  const specPath = resolve(getSpecDir(projectRoot, config, state.specId), 'spec.md');
   const constitutionPath = resolve(getSteelDir(projectRoot), 'constitution.md');
 
   const specContent = existsSync(specPath)

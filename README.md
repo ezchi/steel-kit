@@ -11,20 +11,28 @@ Steel-Kit implements a **Forge + Gauge** pattern:
 - The loop continues until the Gauge approves or max iterations are reached
 - Every iteration is documented and git-committed
 
-## Workflow Stages
+## Setup And Workflow
 
 Inspired by [github/spec-kit](https://github.com/github/spec-kit):
 
+Setup is required once per project:
+
+| Setup Step    | Command                |
+|---------------|------------------------|
+| Init          | `steel init`           |
+| Constitution  | `steel constitution`   |
+
+The staged workflow begins only after the constitution is set:
+
 | Stage          | Command                  | Human Approval      |
 |----------------|--------------------------|---------------------|
-| Init           | `steel init`             | -                   |
-| Constitution   | `steel constitution`     | -                   |
 | Specification  | `steel specify "<desc>"` | Required to advance |
 | Clarification  | `steel clarify`          | Required to advance |
 | Planning       | `steel plan`             | Automatic           |
 | Task Breakdown | `steel tasks`            | Automatic           |
 | Implementation | `steel implement`        | Automatic           |
 | Validation     | `steel validate`         | Automatic           |
+| Retrospect     | `steel retrospect`       | Automatic           |
 
 Check progress anytime with `steel status`.
 
@@ -80,13 +88,15 @@ After selection, the tool will automatically:
 
 No LLM calls are made during init — it completes instantly.
 
-After init, generate your project constitution:
+After init, generate or write your project constitution before starting the workflow:
 
 ```bash
 steel constitution
 ```
 
 This calls the Forge LLM to analyze your project and generate `.steel/constitution.md` with governing principles, coding standards, and constraints. Requires LLM auth to be set up. You can also skip this and edit `.steel/constitution.md` manually.
+
+`steel specify` will refuse to start until `.steel/constitution.md` contains a real project constitution rather than the placeholder template.
 
 ### 2. Run the workflow
 
@@ -108,6 +118,9 @@ steel implement
 
 # Validate the implementation
 steel validate
+
+# Capture learnings and follow-ups
+steel retrospect
 ```
 
 ## Configuration
@@ -141,6 +154,7 @@ Steel-Kit includes slash commands for use within Claude Code:
 - `/steel-tasks` — Break down tasks
 - `/steel-implement` — Run implementation
 - `/steel-validate` — Validate results
+- `/steel-retrospect` — Generate a retrospect
 - `/steel-status` — Check progress
 - `/steel-next` — Run the next stage
 - `/steel-run-all` — Run all remaining stages
@@ -156,13 +170,14 @@ your-project/
 │   ├── constitution.md      # Project principles (committed)
 │   ├── state.json           # Workflow state machine (gitignored, auto-recovered)
 │   └── tasks.json           # Parsed task list (gitignored)
-└── specs/
+└── specs/                  # Or custom specsDir from config
     └── 001-feature-name/
         ├── spec.md           # Specification
         ├── clarifications.md # Resolved ambiguities
         ├── plan.md           # Implementation plan
         ├── tasks.md          # Task breakdown
         ├── validation.md     # Validation report
+        ├── retrospect.md     # Retrospect and learnings
         └── artifacts/        # Forge/Gauge outputs per stage
             ├── specification/
             │   ├── iter1-forge.md
@@ -171,8 +186,8 @@ your-project/
             │   ├── iter1-forge.md
             │   └── iter1-gauge.md
             └── implementation/
-                ├── task1-iter1-forge.md
-                └── task1-iter1-gauge.md
+                ├── iter1-forge.md
+                └── iter1-gauge.md
 ```
 
 ## How the Forge-Gauge Loop Works
@@ -182,7 +197,8 @@ your-project/
 │  1. Forge receives task + context       │
 │  2. Forge produces output               │
 │  3. Output committed to git             │
-│  4. Gauge reviews output                │
+│  4. Gauge reviews the stage artifact    │
+│     (for implementation: real git diff) │
 │  5. Review committed to git             │
 │  6. If APPROVE → advance to next stage  │
 │     If REVISE → feedback sent to Forge  │

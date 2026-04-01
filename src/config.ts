@@ -32,6 +32,18 @@ export function getSteelDir(projectRoot: string): string {
   return resolve(projectRoot, '.steel');
 }
 
+export function getSpecsDir(projectRoot: string, config: SteelConfig): string {
+  return resolve(projectRoot, config.specsDir);
+}
+
+export function getSpecDir(
+  projectRoot: string,
+  config: SteelConfig,
+  specId: string,
+): string {
+  return resolve(getSpecsDir(projectRoot, config), specId);
+}
+
 export function getConfigPath(projectRoot: string): string {
   return resolve(getSteelDir(projectRoot), 'config.json');
 }

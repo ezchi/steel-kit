@@ -92,11 +92,6 @@ tasks.json
   // Install Claude Code slash commands
   await installSlashCommands(projectRoot);
 
-  // Mark constitution stage complete, ready for specification
-  state.stages.constitution.status = 'complete';
-  state.stages.constitution.completedAt = new Date().toISOString();
-  state.currentStage = 'specification';
-  state.stages.specification.status = 'pending';
   const statePath = resolve(steelDir, 'state.json');
   if (await shouldWriteFile(statePath)) {
     await saveState(projectRoot, state);
@@ -117,9 +112,9 @@ tasks.json
   log.success('Steel-Kit initialized!');
   log.info('Next steps:');
   log.info('  1. Set up LLM auth (e.g. ANTHROPIC_API_KEY, GEMINI_API_KEY, or login)');
-  log.info('  2. Run: steel constitution  (generate project principles via LLM)');
-  log.info('     Or edit .steel/constitution.md manually');
-  log.info('  3. Run: steel specify "<feature description>"');
+  log.info('  2. Run: steel constitution  (or edit .steel/constitution.md manually)');
+  log.info('  3. Review the constitution and make sure it is project-specific');
+  log.info('  4. Run: steel specify "<feature description>"');
 }
 
 async function shouldWriteFile(filePath: string): Promise<boolean> {

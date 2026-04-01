@@ -53,3 +53,7 @@ export function substituteTemplate(
 export async function loadFile(path: string): Promise<string> {
   return readFile(path, 'utf-8');
 }
+
+export function isPlaceholderConstitution(content: string): boolean {
+  return content.includes('<!-- Define the core principles');
+}

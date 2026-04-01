@@ -1,7 +1,12 @@
 import { readFile } from 'node:fs/promises';
 import { existsSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { loadConfig, getSteelDir } from '../src/config.js';
+import {
+  type SteelConfig,
+  getSpecsDir,
+  getSteelDir,
+  loadConfig,
+} from '../src/config.js';
 import {
   loadState,
   saveState,
@@ -9,7 +14,7 @@ import {
   advanceStage,
 } from '../src/workflow.js';
 import { initBranch } from '../src/git-ops.js';
-import { log, die } from '../src/utils.js';
+import { isPlaceholderConstitution, log, die } from '../src/utils.js';
 
 export async function cmdSpecify(description: string): Promise<void> {
   log.step(`Starting specification: "${description}"`);
@@ -28,7 +33,18 @@ export async function cmdSpecify(description: string): Promise<void> {
   }
 
   // Generate spec ID from description
-  const specId = generateSpecId(projectRoot, description);
+  const constitutionPath = resolve(getSteelDir(projectRoot), 'constitution.md');
+  const constitution = existsSync(constitutionPath)
+    ? await readFile(constitutionPath, 'utf-8')
+    : undefined;
+
+  if (!constitution || isPlaceholderConstitution(constitution)) {
+    die(
+      'Constitution is not set. Run `steel constitution` or edit `.steel/constitution.md` before `steel specify`.',
+    );
+  }
+
+  const specId = generateSpecId(projectRoot, config, description);
   state.specId = specId;
   state.description = description;
 
@@ -43,12 +59,7 @@ export async function cmdSpecify(description: string): Promise<void> {
   state.currentStage = 'specification';
   await saveState(projectRoot, state);
 
-  // Load constitution
-  log.info('Loading constitution...');
-  const constitutionPath = resolve(getSteelDir(projectRoot), 'constitution.md');
-  const constitution = existsSync(constitutionPath)
-    ? await readFile(constitutionPath, 'utf-8')
-    : undefined;
+  log.info('Loaded project constitution.');
 
   // Run forge-gauge loop
   log.step('Starting Forge-Gauge specification loop...');
@@ -62,9 +73,12 @@ export async function cmdSpecify(description: string): Promise<void> {
   await advanceStage(projectRoot, state, config);
 }
 
-function generateSpecId(projectRoot: string, description: string): string {
-  // Count existing specs for sequential numbering
-  const specsDir = resolve(projectRoot, 'specs');
+function generateSpecId(
+  projectRoot: string,
+  config: SteelConfig,
+  description: string,
+): string {
+  const specsDir = getSpecsDir(projectRoot, config);
   let nextNum = 1;
   if (existsSync(specsDir)) {
     const entries = readdirSync(specsDir);

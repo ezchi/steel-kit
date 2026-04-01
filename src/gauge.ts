@@ -17,6 +17,7 @@ export interface GaugeContext {
   stage: string;
   iteration: number;
   forgeOutput: string;
+  reviewInput?: string;
   specContent?: string;
   planContent?: string;
   constitution?: string;
@@ -33,6 +34,7 @@ export async function gaugeReview(
     STAGE: ctx.stage,
     ITERATION: String(ctx.iteration),
     FORGE_OUTPUT: ctx.forgeOutput,
+    REVIEW_INPUT: ctx.reviewInput ?? ctx.forgeOutput,
     SPEC: ctx.specContent ?? '',
     PLAN: ctx.planContent ?? '',
     CONSTITUTION: ctx.constitution ?? '',
@@ -120,6 +122,7 @@ function stageToReviewName(stage: string): string {
     task_breakdown: 'review-plan',
     implementation: 'review-code',
     validation: 'review-tests',
+    retrospect: 'review-retrospect',
   };
   return map[stage] ?? 'review-spec';
 }
@@ -141,7 +144,7 @@ function buildFallbackReviewPrompt(ctx: GaugeContext): string {
     parts.push(`\n## Plan\n${ctx.planContent}`);
   }
 
-  parts.push(`\n## Forge Output to Review\n${ctx.forgeOutput}`);
+  parts.push(`\n## Material to Review\n${ctx.reviewInput ?? ctx.forgeOutput}`);
 
   parts.push(`\n## Review Instructions`);
   parts.push(`1. Evaluate the output for completeness, correctness, and quality`);

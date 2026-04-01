@@ -6,6 +6,7 @@ import { cmdPlan } from './plan.js';
 import { cmdTasks } from './tasks.js';
 import { cmdImplement } from './implement.js';
 import { cmdValidate } from './validate.js';
+import { cmdRetrospect } from './retrospect.js';
 import { cmdStatus } from './status.js';
 
 const STAGE_COMMANDS: Record<string, () => Promise<void>> = {
@@ -14,6 +15,7 @@ const STAGE_COMMANDS: Record<string, () => Promise<void>> = {
   task_breakdown: cmdTasks,
   implementation: cmdImplement,
   validation: cmdValidate,
+  retrospect: cmdRetrospect,
 };
 
 export async function cmdNext(): Promise<void> {
@@ -25,7 +27,7 @@ export async function cmdNext(): Promise<void> {
 
   const stage = state.currentStage;
 
-  if (stage === 'constitution' || stage === 'specification') {
+  if (stage === 'specification') {
     die(
       `Cannot use 'next' at stage '${stage}'. Run 'steel specify "<desc>"' first.`,
     );

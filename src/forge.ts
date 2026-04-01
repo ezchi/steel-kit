@@ -85,6 +85,7 @@ function stageToPromptName(stage: string): string {
     task_breakdown: 'tasks',
     implementation: 'implement',
     validation: 'validate',
+    retrospect: 'retrospect',
   };
   return map[stage] ?? stage;
 }

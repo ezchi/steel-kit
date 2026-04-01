@@ -9,6 +9,7 @@ import { cmdPlan } from '../commands/plan.js';
 import { cmdTasks } from '../commands/tasks.js';
 import { cmdImplement } from '../commands/implement.js';
 import { cmdValidate } from '../commands/validate.js';
+import { cmdRetrospect } from '../commands/retrospect.js';
 import { cmdStatus } from '../commands/status.js';
 import { cmdNext } from '../commands/next.js';
 import { cmdRunAll } from '../commands/run-all.js';
@@ -63,6 +64,11 @@ program
   .command('validate')
   .description('Run validation and testing')
   .action(cmdValidate);
+
+program
+  .command('retrospect')
+  .description('Generate a retrospect for the completed workflow')
+  .action(cmdRetrospect);
 
 program
   .command('status')

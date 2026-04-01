@@ -20,7 +20,7 @@ Remove the artifacts of the current workflow and reset state so you can start fr
    b. Delete `.steel/state.json` (if it exists)
    c. Delete `.steel/tasks.json` (if it exists)
    d. Remove all `steel/*-complete` git tags (local only)
-   e. Reset `.steel/state.json` to initial state (constitution complete, specification pending)
+   e. Reset `.steel/state.json` to initial state (specification pending)
 
 6. Git commit: `steel(clean): remove artifacts for <specId>`
 

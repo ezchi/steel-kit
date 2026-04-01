@@ -6,6 +6,7 @@ import { cmdPlan } from './plan.js';
 import { cmdTasks } from './tasks.js';
 import { cmdImplement } from './implement.js';
 import { cmdValidate } from './validate.js';
+import { cmdRetrospect } from './retrospect.js';
 import { cmdStatus } from './status.js';
 
 const STAGE_ORDER = [
@@ -14,6 +15,7 @@ const STAGE_ORDER = [
   'task_breakdown',
   'implementation',
   'validation',
+  'retrospect',
 ] as const;
 
 const STAGE_COMMANDS: Record<string, () => Promise<void>> = {
@@ -22,6 +24,7 @@ const STAGE_COMMANDS: Record<string, () => Promise<void>> = {
   task_breakdown: cmdTasks,
   implementation: cmdImplement,
   validation: cmdValidate,
+  retrospect: cmdRetrospect,
 };
 
 export async function cmdRunAll(): Promise<void> {
@@ -33,7 +36,7 @@ export async function cmdRunAll(): Promise<void> {
 
   const stage = state.currentStage;
 
-  if (stage === 'constitution' || stage === 'specification') {
+  if (stage === 'specification') {
     die(
       `Cannot use 'run-all' at stage '${stage}'. Run 'steel specify "<desc>"' first.`,
     );

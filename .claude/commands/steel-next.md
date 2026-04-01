@@ -4,7 +4,7 @@ Run the next stage in the Steel-Kit workflow.
 
 1. Read `.steel/state.json` to determine the current stage.
 
-2. If stage is `constitution` or `specification`, stop: tell the user to run `/steel-specify "<description>"` first.
+2. If stage is `specification`, stop: tell the user to run `/steel-specify "<description>"` first.
 
 3. Based on the current stage, execute the corresponding slash command:
    - `clarification` → follow the steps in `/steel-clarify`

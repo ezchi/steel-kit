@@ -35,6 +35,5 @@ N. [Task Title]
    Verification: How to verify this task is complete
 ```
 
-Mark tasks that can run in parallel with [P] at the start of the title.
 Order tasks so that dependencies come first.
 Aim for 3-15 tasks depending on scope.

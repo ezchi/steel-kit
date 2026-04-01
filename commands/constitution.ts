@@ -4,7 +4,6 @@ import { resolve } from 'node:path';
 import { loadConfig, getSteelDir } from '../src/config.js';
 import { forgeExecute } from '../src/forge.js';
 import { commitStep } from '../src/git-ops.js';
-import { loadState, saveState } from '../src/workflow.js';
 import { log, die, confirm } from '../src/utils.js';
 
 export async function cmdConstitution(prompt?: string): Promise<void> {
@@ -16,9 +15,8 @@ export async function cmdConstitution(prompt?: string): Promise<void> {
     die('Project not initialized. Run `steel init` first.');
   }
 
-  log.info('Loading config and state...');
+  log.info('Loading config...');
   const config = await loadConfig(projectRoot);
-  const state = await loadState(projectRoot);
   const constitutionPath = resolve(steelDir, 'constitution.md');
 
   // Warn if constitution already has real content
@@ -64,13 +62,6 @@ export async function cmdConstitution(prompt?: string): Promise<void> {
   log.info('Saving constitution...');
   await writeFile(constitutionPath, result.output);
   log.success('Constitution generated: .steel/constitution.md');
-
-  // Update state if constitution wasn't marked complete
-  if (state.stages.constitution.status !== 'complete') {
-    state.stages.constitution.status = 'complete';
-    state.stages.constitution.completedAt = new Date().toISOString();
-    await saveState(projectRoot, state);
-  }
 
   if (config.autoCommit) {
     log.info('Committing constitution...');
