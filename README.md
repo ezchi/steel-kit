@@ -41,12 +41,19 @@ Check progress anytime with `steel status`.
 - `steel run-all` — run all remaining stages in sequence (stops if human approval is declined)
 
 **Utility commands**:
-- `steel update` — update slash commands in the current project to the latest version from steel-kit
+- `steel update` — refresh Claude/Gemini/Codex command files in the current project
+- `steel upgrade` — upgrade the Steel-Kit CLI itself to the latest npm release
 - `steel clean` — remove artifacts of current workflow and reset state
 
 ## Installation
 
-### From source (local development)
+### Preferred install
+
+```bash
+npm install -g @steel-kit/core
+```
+
+### From source (local development only)
 
 ```bash
 git clone https://github.com/ezchi/steel-kit.git
@@ -56,13 +63,7 @@ npm run build
 npm link
 ```
 
-This makes the `steel` command available globally. To unlink later: `npm unlink -g @steel-kit/core`.
-
-### From npm (once published)
-
-```bash
-npm install -g @steel-kit/core
-```
+This makes the `steel` command available globally from your checkout. Use this path only if you are actively developing Steel-Kit itself.
 
 ### Prerequisites
 
@@ -84,6 +85,10 @@ Run `steel init` inside your project (must be a git repo). You will be prompted 
 After selection, the tool will automatically:
 - Verify both CLIs are installed and authenticated (warns if not)
 - Create `.steel/` directory with `config.json`, `constitution.md`, and `.gitignore`
+- Install workflow commands for:
+  - Claude Code in `.claude/commands/`
+  - Gemini CLI in `.gemini/commands/`
+  - Codex CLI in `.codex/prompts/` and `~/.codex/prompts/`
 - Auto-commit the initialization to git
 
 No LLM calls are made during init — it completes instantly.
@@ -142,9 +147,26 @@ Environment variables override config:
 - `STEEL_GAUGE_PROVIDER`, `STEEL_GAUGE_MODEL`
 - `STEEL_MAX_ITERATIONS`
 
-## Claude Code Integration
+## Updating Steel-Kit
 
-Steel-Kit includes slash commands for use within Claude Code:
+Use these two commands separately:
+
+```bash
+# Upgrade the installed Steel-Kit CLI
+steel upgrade
+
+# Refresh command files in the current project
+steel update
+```
+
+`steel update` installs or refreshes:
+- Claude Code commands in `.claude/commands/`
+- Gemini CLI commands in `.gemini/commands/`
+- Codex prompts in `.codex/prompts/` and `~/.codex/prompts/`
+
+## CLI Command Integration
+
+Steel-Kit installs matching workflow commands for Claude Code, Gemini CLI, and Codex CLI:
 
 - `/steel-init` — Initialize Steel-Kit
 - `/steel-constitution` — Generate project constitution via LLM

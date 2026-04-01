@@ -1,13 +1,14 @@
-import { mkdir, writeFile, readdir, readFile, copyFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { initConfig, getSteelDir, getConfigPath } from '../src/config.js';
+import { installProjectCommands } from '../src/command-installer.js';
 import { commitStep } from '../src/git-ops.js';
 import {
   createInitialState,
   saveState,
 } from '../src/workflow.js';
-import { log, die, confirm, STEEL_KIT_ROOT } from '../src/utils.js';
+import { log, confirm } from '../src/utils.js';
 import { getProvider } from '../src/providers/index.js';
 
 const PLACEHOLDER_CONSTITUTION = `# Project Constitution
@@ -89,7 +90,7 @@ tasks.json
     log.success('Created .steel/constitution.md (edit this to define your project principles)');
   }
 
-  // Install Claude Code slash commands
+  // Install project commands for supported CLIs
   await installSlashCommands(projectRoot);
 
   const statePath = resolve(steelDir, 'state.json');
@@ -127,29 +128,19 @@ async function shouldWriteFile(filePath: string): Promise<boolean> {
 }
 
 async function installSlashCommands(projectRoot: string): Promise<void> {
-  const sourceDir = resolve(STEEL_KIT_ROOT, '.claude', 'commands');
-  const targetDir = resolve(projectRoot, '.claude', 'commands');
-
-  if (!existsSync(sourceDir)) {
-    log.warn('Slash command source directory not found, skipping installation.');
-    return;
+  try {
+    const result = await installProjectCommands(projectRoot);
+    log.success(
+      `Installed commands: Claude=${result.claude}, Gemini=${result.gemini}, Codex(project)=${result.codexProject}, Codex(user)=${result.codexUser}`,
+    );
+    if (result.codexUser > 0) {
+      log.info('Codex prompts were also written to ~/.codex/prompts so `/steel-*` is available in Codex CLI.');
+    }
+    for (const warning of result.warnings) {
+      log.warn(`Command install warning: ${warning}`);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    log.warn(`Command installation skipped: ${message}`);
   }
-
-  log.info('Installing Claude Code slash commands to .claude/commands/...');
-  await mkdir(targetDir, { recursive: true });
-
-  const files = await readdir(sourceDir);
-  const steelFiles = files.filter((f) => f.startsWith('steel-') && f.endsWith('.md'));
-
-  let installed = 0;
-  for (const file of steelFiles) {
-    const sourcePath = resolve(sourceDir, file);
-    const targetPath = resolve(targetDir, file);
-
-    // Always overwrite to ensure latest version
-    await copyFile(sourcePath, targetPath);
-    installed++;
-  }
-
-  log.success(`Installed ${installed} slash commands (e.g. /steel-specify, /steel-status)`);
 }
