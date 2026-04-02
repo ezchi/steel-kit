@@ -9,10 +9,12 @@ import { cmdPlan } from '../commands/plan.js';
 import { cmdTasks } from '../commands/tasks.js';
 import { cmdImplement } from '../commands/implement.js';
 import { cmdValidate } from '../commands/validate.js';
+import { cmdRetrospect } from '../commands/retrospect.js';
 import { cmdStatus } from '../commands/status.js';
 import { cmdNext } from '../commands/next.js';
 import { cmdRunAll } from '../commands/run-all.js';
 import { cmdUpdate } from '../commands/update.js';
+import { cmdUpgrade } from '../commands/upgrade.js';
 import { cmdClean } from '../commands/clean.js';
 
 const program = new Command();
@@ -65,6 +67,11 @@ program
   .action(cmdValidate);
 
 program
+  .command('retrospect')
+  .description('Generate a retrospect for the completed workflow')
+  .action(cmdRetrospect);
+
+program
   .command('status')
   .description('Show current workflow status')
   .action(cmdStatus);
@@ -81,8 +88,13 @@ program
 
 program
   .command('update')
-  .description('Update slash commands to latest version')
+  .description('Refresh Claude/Gemini/Codex command files in the current project')
   .action(cmdUpdate);
+
+program
+  .command('upgrade')
+  .description('Upgrade the Steel-Kit CLI to the latest npm release')
+  .action(cmdUpgrade);
 
 program
   .command('clean')

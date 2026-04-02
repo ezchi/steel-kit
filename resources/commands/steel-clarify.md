@@ -1,6 +1,7 @@
 Run clarification on the current specification using the Forge-Gauge loop.
 
 ## Prerequisites
+- `.steel/constitution.md` must contain a real project constitution, not the placeholder template
 - `.steel/state.json` currentStage must be `clarification`
 
 ## Steps

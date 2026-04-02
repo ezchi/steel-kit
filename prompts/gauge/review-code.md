@@ -15,8 +15,11 @@ CRITICAL: Output ONLY the review content. No conversational text, no preamble, n
 ## Implementation Plan
 {{PLAN}}
 
-## Code Changes to Review
+## Forge Summary
 {{FORGE_OUTPUT}}
+
+## Git Diff to Review
+{{REVIEW_INPUT}}
 
 ## Code Review Checklist
 

@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { execa } from 'execa';
-import { getSteelDir, loadConfig } from '../src/config.js';
+import { getSpecDir, getSteelDir, loadConfig } from '../src/config.js';
 import { loadState, createInitialState, saveState } from '../src/workflow.js';
 import { commitStep } from '../src/git-ops.js';
 import { log, confirm, die } from '../src/utils.js';
@@ -24,7 +24,7 @@ export async function cmdClean(): Promise<void> {
   log.info('  - .steel/state.json');
   log.info('  - .steel/tasks.json');
   if (specId) {
-    log.info(`  - specs/${specId}/artifacts/ (iteration artifacts only)`);
+    log.info(`  - ${config.specsDir}/${specId}/artifacts/ (iteration artifacts only)`);
   }
   log.info('  - All steel/*-complete git tags (local only)');
 
@@ -40,10 +40,10 @@ export async function cmdClean(): Promise<void> {
 
   // Delete iteration artifacts only (keep spec.md, plan.md, etc.)
   if (specId) {
-    const artifactsDir = resolve(projectRoot, 'specs', specId, 'artifacts');
+    const artifactsDir = resolve(getSpecDir(projectRoot, config, specId), 'artifacts');
     if (existsSync(artifactsDir)) {
       await rm(artifactsDir, { recursive: true });
-      log.info(`Deleted specs/${specId}/artifacts/`);
+      log.info(`Deleted ${config.specsDir}/${specId}/artifacts/`);
     }
   }
 
@@ -71,12 +71,7 @@ export async function cmdClean(): Promise<void> {
     log.info(`Removed ${tags.length} git tag(s)`);
   }
 
-  // Reset state to initial (constitution complete, ready for specification)
   const freshState = createInitialState();
-  freshState.stages.constitution.status = 'complete';
-  freshState.stages.constitution.completedAt = new Date().toISOString();
-  freshState.currentStage = 'specification';
-  freshState.stages.specification.status = 'pending';
   await saveState(projectRoot, freshState);
 
   // Git commit

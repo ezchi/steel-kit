@@ -1,13 +1,14 @@
-import { mkdir, writeFile, readdir, readFile, copyFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { initConfig, getSteelDir, getConfigPath } from '../src/config.js';
+import { installProjectCommands } from '../src/command-installer.js';
 import { commitStep } from '../src/git-ops.js';
 import {
   createInitialState,
   saveState,
 } from '../src/workflow.js';
-import { log, die, confirm, STEEL_KIT_ROOT } from '../src/utils.js';
+import { log, confirm } from '../src/utils.js';
 import { getProvider } from '../src/providers/index.js';
 
 const PLACEHOLDER_CONSTITUTION = `# Project Constitution
@@ -89,14 +90,9 @@ tasks.json
     log.success('Created .steel/constitution.md (edit this to define your project principles)');
   }
 
-  // Install Claude Code slash commands
+  // Install project commands for supported CLIs
   await installSlashCommands(projectRoot);
 
-  // Mark constitution stage complete, ready for specification
-  state.stages.constitution.status = 'complete';
-  state.stages.constitution.completedAt = new Date().toISOString();
-  state.currentStage = 'specification';
-  state.stages.specification.status = 'pending';
   const statePath = resolve(steelDir, 'state.json');
   if (await shouldWriteFile(statePath)) {
     await saveState(projectRoot, state);
@@ -117,9 +113,9 @@ tasks.json
   log.success('Steel-Kit initialized!');
   log.info('Next steps:');
   log.info('  1. Set up LLM auth (e.g. ANTHROPIC_API_KEY, GEMINI_API_KEY, or login)');
-  log.info('  2. Run: steel constitution  (generate project principles via LLM)');
-  log.info('     Or edit .steel/constitution.md manually');
-  log.info('  3. Run: steel specify "<feature description>"');
+  log.info('  2. Run: steel constitution  (or edit .steel/constitution.md manually)');
+  log.info('  3. Review the constitution and make sure it is project-specific');
+  log.info('  4. Run: steel specify "<feature description>"');
 }
 
 async function shouldWriteFile(filePath: string): Promise<boolean> {
@@ -132,29 +128,20 @@ async function shouldWriteFile(filePath: string): Promise<boolean> {
 }
 
 async function installSlashCommands(projectRoot: string): Promise<void> {
-  const sourceDir = resolve(STEEL_KIT_ROOT, '.claude', 'commands');
-  const targetDir = resolve(projectRoot, '.claude', 'commands');
-
-  if (!existsSync(sourceDir)) {
-    log.warn('Slash command source directory not found, skipping installation.');
-    return;
+  try {
+    const result = await installProjectCommands(projectRoot);
+    log.success(
+      `Installed commands: Claude=${result.claude}, Gemini=${result.gemini}, Codex skills=${result.codex}`,
+    );
+    if (result.codex > 0) {
+      log.info('Codex skills were written to `.agents/skills/`.');
+      log.info('In Codex, invoke them as `$steel-constitution`, `$steel-specify`, `$steel-plan`, and so on.');
+    }
+    for (const warning of result.warnings) {
+      log.warn(`Command install warning: ${warning}`);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    log.warn(`Command installation skipped: ${message}`);
   }
-
-  log.info('Installing Claude Code slash commands to .claude/commands/...');
-  await mkdir(targetDir, { recursive: true });
-
-  const files = await readdir(sourceDir);
-  const steelFiles = files.filter((f) => f.startsWith('steel-') && f.endsWith('.md'));
-
-  let installed = 0;
-  for (const file of steelFiles) {
-    const sourcePath = resolve(sourceDir, file);
-    const targetPath = resolve(targetDir, file);
-
-    // Always overwrite to ensure latest version
-    await copyFile(sourcePath, targetPath);
-    installed++;
-  }
-
-  log.success(`Installed ${installed} slash commands (e.g. /steel-specify, /steel-status)`);
 }

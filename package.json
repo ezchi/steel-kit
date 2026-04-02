@@ -1,6 +1,6 @@
 {
   "name": "@steel-kit/core",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "description": "Dual-agent AI development framework orchestrating multiple LLM CLIs",
   "type": "module",
   "main": "dist/index.js",
@@ -9,9 +9,14 @@
   },
   "scripts": {
     "build": "tsc",
+    "prepare": "npm run build",
     "dev": "tsc --watch",
     "test": "vitest",
     "lint": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ezchi/steel-kit.git"
   },
   "keywords": [
     "llm",

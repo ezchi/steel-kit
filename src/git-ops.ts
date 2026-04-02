@@ -49,7 +49,10 @@ export async function tagStage(
   projectRoot: string,
 ): Promise<void> {
   const tagName = `steel/${stage}-complete`;
-  await execa('git', ['tag', tagName], { cwd: projectRoot, reject: false });
+  await execa('git', ['tag', '-f', tagName], {
+    cwd: projectRoot,
+    stdin: 'ignore',
+  });
   log.info(`Tagged: ${tagName}`);
 }
 
@@ -64,5 +67,18 @@ export async function getCurrentBranch(projectRoot: string): Promise<string> {
   const result = await execa('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
     cwd: projectRoot,
   });
+  return result.stdout.trim();
+}
+
+export async function getWorkingTreeDiff(projectRoot: string): Promise<string> {
+  const result = await execa(
+    'git',
+    ['diff', '--no-ext-diff', '--stat', '--patch', 'HEAD'],
+    {
+      cwd: projectRoot,
+      stdin: 'ignore',
+    },
+  );
+
   return result.stdout.trim();
 }

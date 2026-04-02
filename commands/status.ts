@@ -5,13 +5,13 @@ import { log } from '../src/utils.js';
 import chalk from 'chalk';
 
 const STAGE_LABELS: Record<StageName, string> = {
-  constitution: 'Constitution',
   specification: 'Specification',
   clarification: 'Clarification',
   planning: 'Planning',
   task_breakdown: 'Task Breakdown',
   implementation: 'Implementation',
   validation: 'Validation',
+  retrospect: 'Retrospect',
 };
 
 const STATUS_ICONS: Record<string, string> = {

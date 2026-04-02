@@ -2,22 +2,33 @@ import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { execa } from 'execa';
-import { type SteelConfig, getSteelDir } from './config.js';
+import {
+  type SteelConfig,
+  getSpecDir,
+  getSpecsDir,
+  getSteelDir,
+  loadConfig,
+} from './config.js';
 import { forgeExecute, type ForgeContext } from './forge.js';
 import { gaugeReview, type GaugeContext } from './gauge.js';
-import { commitStep, tagStage, getCurrentBranch } from './git-ops.js';
+import {
+  commitStep,
+  getCurrentBranch,
+  getWorkingTreeDiff,
+  tagStage,
+} from './git-ops.js';
 import { log, confirm, die } from './utils.js';
 
 // -- Stage Definitions --
 
 export type StageName =
-  | 'constitution'
   | 'specification'
   | 'clarification'
   | 'planning'
   | 'task_breakdown'
   | 'implementation'
-  | 'validation';
+  | 'validation'
+  | 'retrospect';
 
 export type StageStatus = 'pending' | 'in_progress' | 'complete';
 
@@ -38,13 +49,13 @@ export interface WorkflowState {
 }
 
 const STAGE_ORDER: StageName[] = [
-  'constitution',
   'specification',
   'clarification',
   'planning',
   'task_breakdown',
   'implementation',
   'validation',
+  'retrospect',
 ];
 
 const HUMAN_APPROVAL_GATES: Set<string> = new Set([
@@ -60,14 +71,14 @@ function getStatePath(projectRoot: string): string {
 
 function getArtifactsDir(
   projectRoot: string,
+  config: SteelConfig,
   state: WorkflowState,
   stage: string,
 ): string {
-  if (state.specId) {
-    return resolve(projectRoot, 'specs', state.specId, 'artifacts', stage);
+  if (!state.specId) {
+    throw new Error(`Cannot resolve artifacts path for stage "${stage}" without a spec ID.`);
   }
-  // Fallback for constitution stage (no specId yet)
-  return resolve(getSteelDir(projectRoot), 'artifacts', stage);
+  return resolve(getSpecDir(projectRoot, config, state.specId), 'artifacts', stage);
 }
 
 export function createInitialState(): WorkflowState {
@@ -76,7 +87,7 @@ export function createInitialState(): WorkflowState {
     stages[stage] = { status: 'pending' };
   }
   return {
-    currentStage: 'constitution',
+    currentStage: 'specification',
     iteration: 1,
     stages,
   };
@@ -86,7 +97,7 @@ export async function loadState(projectRoot: string): Promise<WorkflowState> {
   const path = getStatePath(projectRoot);
   if (existsSync(path)) {
     const raw = await readFile(path, 'utf-8');
-    return JSON.parse(raw);
+    return normalizeState(JSON.parse(raw));
   }
 
   // state.json is gitignored — try to recover from committed artifacts
@@ -96,13 +107,47 @@ export async function loadState(projectRoot: string): Promise<WorkflowState> {
   }
 
   log.info('state.json not found — recovering state from committed artifacts...');
-  const state = await recoverState(projectRoot);
+  const config = await loadConfig(projectRoot);
+  const state = await recoverState(projectRoot, config);
   await saveState(projectRoot, state);
   log.success(`Recovered state: stage=${state.currentStage}, specId=${state.specId ?? 'none'}`);
   return state;
 }
 
-async function recoverState(projectRoot: string): Promise<WorkflowState> {
+function normalizeState(raw: any): WorkflowState {
+  const initial = createInitialState();
+  const stages = { ...initial.stages };
+
+  for (const stage of STAGE_ORDER) {
+    if (raw?.stages?.[stage]) {
+      stages[stage] = {
+        status: raw.stages[stage].status,
+        iteration: raw.stages[stage].iteration,
+        startedAt: raw.stages[stage].startedAt,
+        completedAt: raw.stages[stage].completedAt,
+      };
+    }
+  }
+
+  const currentStage =
+    raw?.currentStage === 'constitution' || !STAGE_ORDER.includes(raw?.currentStage)
+      ? 'specification'
+      : raw.currentStage;
+
+  return {
+    currentStage,
+    iteration: typeof raw?.iteration === 'number' ? raw.iteration : 1,
+    specId: raw?.specId,
+    branch: raw?.branch,
+    description: raw?.description,
+    stages,
+  };
+}
+
+async function recoverState(
+  projectRoot: string,
+  config: SteelConfig,
+): Promise<WorkflowState> {
   const state = createInitialState();
 
   // 1. Detect specId from branch name (spec/<specId>) or specs/ directory
@@ -111,12 +156,10 @@ async function recoverState(projectRoot: string): Promise<WorkflowState> {
     state.specId = branch.slice(5);
     state.branch = branch;
   } else {
-    // Fall back to looking at specs/ directory for the most recent spec
-    const specsDir = resolve(projectRoot, 'specs');
+    const specsDir = getSpecsDir(projectRoot, config);
     if (existsSync(specsDir)) {
       const entries = await readdir(specsDir);
       if (entries.length > 0) {
-        // Pick the highest-numbered spec
         const sorted = entries.sort();
         state.specId = sorted[sorted.length - 1];
       }
@@ -128,7 +171,7 @@ async function recoverState(projectRoot: string): Promise<WorkflowState> {
 
   // 3. Check committed spec files to infer progress
   const specFiles = state.specId
-    ? await detectSpecFiles(projectRoot, state.specId)
+    ? await detectSpecFiles(projectRoot, config, state.specId)
     : new Set<string>();
 
   // Map spec files to stages
@@ -138,16 +181,11 @@ async function recoverState(projectRoot: string): Promise<WorkflowState> {
     'plan.md': 'planning',
     'tasks.md': 'task_breakdown',
     'validation.md': 'validation',
+    'retrospect.md': 'retrospect',
   };
 
-  // Mark constitution as complete (it always is after init)
-  state.stages.constitution.status = 'complete';
-
-  // Mark stages complete based on tags and files
-  let lastCompleted: StageName = 'constitution';
+  let lastCompleted: StageName | null = null;
   for (const stage of STAGE_ORDER) {
-    if (stage === 'constitution') continue;
-
     const tagComplete = completedStages.has(stage);
     const fileExists = Object.entries(fileToStage).some(
       ([file, s]) => s === stage && specFiles.has(file),
@@ -159,7 +197,11 @@ async function recoverState(projectRoot: string): Promise<WorkflowState> {
     }
   }
 
-  // Current stage is the one after the last completed
+  if (!lastCompleted) {
+    state.currentStage = 'specification';
+    return state;
+  }
+
   const nextStage = getNextStage(lastCompleted);
   state.currentStage = nextStage ?? lastCompleted;
   state.iteration = 1;
@@ -183,8 +225,12 @@ async function getCompletedStagesFromTags(projectRoot: string): Promise<Set<stri
   return stages;
 }
 
-async function detectSpecFiles(projectRoot: string, specId: string): Promise<Set<string>> {
-  const specDir = resolve(projectRoot, 'specs', specId);
+async function detectSpecFiles(
+  projectRoot: string,
+  config: SteelConfig,
+  specId: string,
+): Promise<Set<string>> {
+  const specDir = getSpecDir(projectRoot, config, specId);
   if (!existsSync(specDir)) return new Set();
   const entries = await readdir(specDir);
   return new Set(entries);
@@ -235,10 +281,7 @@ export async function advanceStage(
     }
   }
 
-  // Tag completed stage
-  if (config.autoCommit) {
-    await tagStage(state.currentStage, projectRoot);
-  }
+  await tagStage(state.currentStage, projectRoot);
 
   // Advance
   state.stages[state.currentStage].status = 'complete';
@@ -301,7 +344,7 @@ export async function runForgeGaugeLoop(
 
     // Save forge artifact
     log.info('Saving forge output...');
-    const artifactsDir = getArtifactsDir(projectRoot, state, stage);
+    const artifactsDir = getArtifactsDir(projectRoot, config, state, stage);
     await mkdir(artifactsDir, { recursive: true });
     const forgeArtifactPath = resolve(
       artifactsDir,
@@ -310,7 +353,12 @@ export async function runForgeGaugeLoop(
     await writeFile(forgeArtifactPath, forgeResult.output);
 
     // Update the stage output file (e.g., specs/NNN/spec.md)
-    await updateStageOutput(projectRoot, state, forgeResult.output);
+    await updateStageOutput(projectRoot, config, state, forgeResult.output);
+
+    const reviewInput = stage === 'implementation'
+      ? (await getWorkingTreeDiff(projectRoot)) ||
+        `No git diff detected after Forge execution.\n\nForge summary:\n${forgeResult.output}`
+      : forgeResult.output;
 
     // Git commit forge output
     if (config.autoCommit) {
@@ -329,6 +377,7 @@ export async function runForgeGaugeLoop(
       stage,
       iteration: iter,
       forgeOutput: forgeResult.output,
+      reviewInput,
       specContent: loopCtx.specContent,
       planContent: loopCtx.planContent,
       constitution: loopCtx.constitution,
@@ -397,16 +446,17 @@ export async function runForgeGaugeLoop(
 
 async function updateStageOutput(
   projectRoot: string,
+  config: SteelConfig,
   state: WorkflowState,
   output: string,
 ): Promise<void> {
   const stage = state.currentStage;
   const specId = state.specId;
 
-  if (!specId) return; // constitution stage has no specId
+  if (!specId) return;
 
-  const specsDir = resolve(projectRoot, 'specs', specId);
-  await mkdir(specsDir, { recursive: true });
+  const specDir = getSpecDir(projectRoot, config, specId);
+  await mkdir(specDir, { recursive: true });
 
   const fileMap: Partial<Record<StageName, string>> = {
     specification: 'spec.md',
@@ -414,10 +464,11 @@ async function updateStageOutput(
     planning: 'plan.md',
     task_breakdown: 'tasks.md',
     validation: 'validation.md',
+    retrospect: 'retrospect.md',
   };
 
   const filename = fileMap[stage];
   if (filename) {
-    await writeFile(resolve(specsDir, filename), output);
+    await writeFile(resolve(specDir, filename), output);
   }
 }

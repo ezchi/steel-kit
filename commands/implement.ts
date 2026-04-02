@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { loadConfig, getSteelDir } from '../src/config.js';
+import { getSpecDir, getSteelDir, loadConfig } from '../src/config.js';
+import { loadConstitutionIfReady } from '../src/constitution.js';
 import {
   loadState,
   saveState,
@@ -14,7 +15,6 @@ interface Task {
   id: number;
   title: string;
   description: string;
-  parallel: boolean;
 }
 
 export async function cmdImplement(): Promise<void> {
@@ -49,11 +49,11 @@ export async function cmdImplement(): Promise<void> {
     die('Task list is empty.');
   }
 
+  const specDir = getSpecDir(projectRoot, config, state.specId);
   // Load context files
   log.info('Loading spec, plan, and constitution...');
-  const specPath = resolve(projectRoot, 'specs', state.specId, 'spec.md');
-  const planPath = resolve(projectRoot, 'specs', state.specId, 'plan.md');
-  const constitutionPath = resolve(getSteelDir(projectRoot), 'constitution.md');
+  const specPath = resolve(specDir, 'spec.md');
+  const planPath = resolve(specDir, 'plan.md');
 
   const specContent = existsSync(specPath)
     ? await readFile(specPath, 'utf-8')
@@ -61,9 +61,7 @@ export async function cmdImplement(): Promise<void> {
   const planContent = existsSync(planPath)
     ? await readFile(planPath, 'utf-8')
     : undefined;
-  const constitution = existsSync(constitutionPath)
-    ? await readFile(constitutionPath, 'utf-8')
-    : undefined;
+  const constitution = await loadConstitutionIfReady(projectRoot);
 
   log.info(`Implementing ${tasks.length} tasks for: ${state.specId}`);
 

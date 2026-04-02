@@ -1,6 +1,7 @@
 Break the implementation plan into ordered, actionable tasks using the Forge-Gauge loop.
 
 ## Prerequisites
+- `.steel/constitution.md` must contain a real project constitution, not the placeholder template
 - `.steel/state.json` currentStage must be `task_breakdown`
 
 ## Steps
