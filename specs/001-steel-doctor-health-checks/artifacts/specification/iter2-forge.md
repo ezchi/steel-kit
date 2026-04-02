@@ -8,7 +8,7 @@ This specification is scoped only to Issue 1 from [docs/roadmap-issues.md](/User
 
 The command must align with the project constitution:
 - Linux and macOS are the only supported platforms.
-- Codex, Gemini CLI, and Claude Code must all be supported.
+- Codex, Gemini CLI, and Claude Code must be supported.
 - The workflow must remain auditable and easy for users to inspect.
 - Automation must prefer explicit, readable diagnostics over opaque behavior.
 
