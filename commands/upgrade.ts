@@ -1,13 +1,13 @@
 import { execa } from 'execa';
 import { log, die } from '../src/utils.js';
 
-const PACKAGE_NAME = '@steel-kit/core';
+const INSTALL_TARGET = 'github:ezchi/steel-kit';
 
 export async function cmdUpgrade(): Promise<void> {
   log.step('Upgrading Steel-Kit...');
-  log.info(`Installing latest npm release for ${PACKAGE_NAME}...`);
+  log.info(`Installing latest Steel-Kit release from ${INSTALL_TARGET}...`);
 
-  const result = await execa('npm', ['install', '-g', `${PACKAGE_NAME}@latest`], {
+  const result = await execa('npm', ['install', '-g', INSTALL_TARGET], {
     reject: false,
     stdin: 'ignore',
   });

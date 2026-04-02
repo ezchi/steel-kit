@@ -50,8 +50,10 @@ Check progress anytime with `steel status`.
 ### Preferred install
 
 ```bash
-npm install -g @steel-kit/core
+npm install -g github:ezchi/steel-kit
 ```
+
+This installs directly from the GitHub repository and runs the package build during installation. It is the supported install path until Steel-Kit is published as a stable npm package.
 
 ### From source (local development only)
 
@@ -153,7 +155,7 @@ Environment variables override config:
 Use these two commands separately:
 
 ```bash
-# Upgrade the installed Steel-Kit CLI
+# Upgrade the installed Steel-Kit CLI from GitHub
 steel upgrade
 
 # Refresh command files in the current project
