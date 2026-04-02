@@ -1,0 +1,35 @@
+{
+  "currentStage": "specification",
+  "iteration": 1,
+  "specId": "001-steel-doctor-health-checks",
+  "branch": "spec/001-steel-doctor-health-checks",
+  "description": "docs/roadmap-issues.md only implement issue-1 of it",
+  "stages": {
+    "specification": {
+      "status": "in_progress"
+    },
+    "clarification": {
+      "status": "pending"
+    },
+    "planning": {
+      "status": "pending"
+    },
+    "task_breakdown": {
+      "status": "pending"
+    },
+    "implementation": {
+      "status": "pending"
+    },
+    "validation": {
+      "status": "pending"
+    },
+    "retrospect": {
+      "status": "pending"
+    }
+  },
+  "skillsUsed": {
+    "specification": [
+      "steel-specify"
+    ]
+  }
+}
