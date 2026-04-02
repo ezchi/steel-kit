@@ -1,3 +1,12 @@
+---
+name: steel-tasks
+description: "Steel-Kit workflow skill: Break the implementation plan into ordered, actionable tasks using the Forge-Gauge loop."
+---
+
+# steel-tasks
+
+Use this skill when the user invokes `$steel-tasks` or asks to run the corresponding Steel-Kit workflow step in Codex.
+
 Break the implementation plan into ordered, actionable tasks using the Forge-Gauge loop.
 
 ## Prerequisites
@@ -50,4 +59,5 @@ Break the implementation plan into ordered, actionable tasks using the Forge-Gau
 
 7. **Track skills used**: Update `.steel/state.json` field `skillsUsed.task_breakdown` with an array of skill names you invoked during this stage. If no skills were used, set it to `[]`.
 
-8. Tell the user: "Tasks ready. Run `/steel-implement` to start implementation."
+8. Tell the user: "Tasks ready. Run `$steel-implement` to start implementation."
+

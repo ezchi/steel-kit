@@ -1,3 +1,12 @@
+---
+name: steel-retrospect
+description: "Steel-Kit workflow skill: Review the entire workflow to extract learnings, memory candidates, and skill improvements using the Forge-Gauge loop."
+---
+
+# steel-retrospect
+
+Use this skill when the user invokes `$steel-retrospect` or asks to run the corresponding Steel-Kit workflow step in Codex.
+
 Review the entire workflow to extract learnings, memory candidates, and skill improvements using the Forge-Gauge loop.
 
 ## Prerequisites
@@ -105,3 +114,4 @@ Review the entire workflow to extract learnings, memory candidates, and skill im
 5. Update `.steel/state.json`: mark `retrospect` as complete, tag `steel/retrospect-complete`.
 
 6. Show final summary: "Workflow complete! All stages including retrospect passed."
+

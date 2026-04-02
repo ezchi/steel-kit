@@ -1,3 +1,12 @@
+---
+name: steel-clarify
+description: "Steel-Kit workflow skill: Run clarification on the current specification using the Forge-Gauge loop."
+---
+
+# steel-clarify
+
+Use this skill when the user invokes `$steel-clarify` or asks to run the corresponding Steel-Kit workflow step in Codex.
+
 Run clarification on the current specification using the Forge-Gauge loop.
 
 ## Prerequisites
@@ -67,4 +76,5 @@ Run clarification on the current specification using the Forge-Gauge loop.
 
 5. **Track skills used**: Update `.steel/state.json` field `skillsUsed.clarification` with an array of skill names you invoked during this stage. If no skills were used, set it to `[]`.
 
-6. Tell the user: "Run `/steel-plan` to generate the implementation plan."
+6. Tell the user: "Run `$steel-plan` to generate the implementation plan."
+

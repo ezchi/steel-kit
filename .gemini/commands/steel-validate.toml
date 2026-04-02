@@ -1,3 +1,6 @@
+description = "Validate the implementation against the specification using the Forge-Gauge loop."
+
+prompt = """
 Validate the implementation against the specification using the Forge-Gauge loop.
 
 ## Prerequisites
@@ -136,3 +139,5 @@ Validate the implementation against the specification using the Forge-Gauge loop
 6. Auto-advance to `retrospect` stage. **No human approval needed.** Update `.steel/state.json`, tag `steel/validation-complete`.
 
 7. Tell the user: "Validation complete. Run `/steel-retrospect` to review the workflow."
+
+"""

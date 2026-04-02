@@ -1,3 +1,6 @@
+description = "Run clarification on the current specification using the Forge-Gauge loop."
+
+prompt = """
 Run clarification on the current specification using the Forge-Gauge loop.
 
 ## Prerequisites
@@ -68,3 +71,5 @@ Run clarification on the current specification using the Forge-Gauge loop.
 5. **Track skills used**: Update `.steel/state.json` field `skillsUsed.clarification` with an array of skill names you invoked during this stage. If no skills were used, set it to `[]`.
 
 6. Tell the user: "Run `/steel-plan` to generate the implementation plan."
+
+"""

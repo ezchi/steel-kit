@@ -1,9 +1,18 @@
+---
+name: steel-specify
+description: "Steel-Kit workflow skill: Create a feature specification using the Forge-Gauge dual-agent loop."
+---
+
+# steel-specify
+
+Use this skill when the user invokes `$steel-specify` or asks to run the corresponding Steel-Kit workflow step in Codex.
+
 Create a feature specification using the Forge-Gauge dual-agent loop.
 
-Feature description: $ARGUMENTS
+Feature description: the user-provided input
 
 ## Prerequisites
-- `.steel/` must exist (run `/steel-init` first)
+- `.steel/` must exist (run `$steel-init` first)
 - `.steel/constitution.md` must contain a real project constitution, not the placeholder template
 - `.steel/state.json` currentStage must be `specification`
 
@@ -11,7 +20,7 @@ Feature description: $ARGUMENTS
 
 1. Read `.steel/state.json` and `.steel/config.json`. Verify stage is `specification`.
 
-2. Generate a spec ID: count existing directories in `specs/`, increment, and create `specs/NNN-<semantic-name>/` where the name is derived from $ARGUMENTS.
+2. Generate a spec ID: count existing directories in `specs/`, increment, and create `specs/NNN-<semantic-name>/` where the name is derived from the user-provided input.
 
 3. Create a git branch: `spec/NNN-<semantic-name>`
 
@@ -66,3 +75,4 @@ Feature description: $ARGUMENTS
 8. **Track skills used**: Update `.steel/state.json` field `skillsUsed.specification` with an array of skill names you invoked during this stage (e.g., `["systemverilog-core", "sv-gen"]`). If no skills were used, set it to `[]`.
 
 9. Show a summary of the specification.
+

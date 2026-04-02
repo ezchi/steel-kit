@@ -1,3 +1,6 @@
+description = "Run the next stage in the Steel-Kit workflow."
+
+prompt = """
 Run the next stage in the Steel-Kit workflow.
 
 ## Steps
@@ -17,3 +20,5 @@ Run the next stage in the Steel-Kit workflow.
    - `retrospect` → follow the steps in `/steel-retrospect`
 
 5. If all stages are complete, run `/steel-status` and say "Workflow complete!"
+
+"""

@@ -1,6 +1,9 @@
+description = "Create a feature specification using the Forge-Gauge dual-agent loop."
+
+prompt = """
 Create a feature specification using the Forge-Gauge dual-agent loop.
 
-Feature description: $ARGUMENTS
+Feature description: <args>
 
 ## Prerequisites
 - `.steel/` must exist (run `/steel-init` first)
@@ -11,7 +14,7 @@ Feature description: $ARGUMENTS
 
 1. Read `.steel/state.json` and `.steel/config.json`. Verify stage is `specification`.
 
-2. Generate a spec ID: count existing directories in `specs/`, increment, and create `specs/NNN-<semantic-name>/` where the name is derived from $ARGUMENTS.
+2. Generate a spec ID: count existing directories in `specs/`, increment, and create `specs/NNN-<semantic-name>/` where the name is derived from <args>.
 
 3. Create a git branch: `spec/NNN-<semantic-name>`
 
@@ -66,3 +69,5 @@ Feature description: $ARGUMENTS
 8. **Track skills used**: Update `.steel/state.json` field `skillsUsed.specification` with an array of skill names you invoked during this stage (e.g., `["systemverilog-core", "sv-gen"]`). If no skills were used, set it to `[]`.
 
 9. Show a summary of the specification.
+
+"""

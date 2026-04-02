@@ -1,3 +1,6 @@
+description = "Break the implementation plan into ordered, actionable tasks using the Forge-Gauge loop."
+
+prompt = """
 Break the implementation plan into ordered, actionable tasks using the Forge-Gauge loop.
 
 ## Prerequisites
@@ -51,3 +54,5 @@ Break the implementation plan into ordered, actionable tasks using the Forge-Gau
 7. **Track skills used**: Update `.steel/state.json` field `skillsUsed.task_breakdown` with an array of skill names you invoked during this stage. If no skills were used, set it to `[]`.
 
 8. Tell the user: "Tasks ready. Run `/steel-implement` to start implementation."
+
+"""
