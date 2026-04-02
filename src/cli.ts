@@ -22,7 +22,7 @@ const program = new Command();
 program
   .name('steel')
   .description('Dual-agent AI development framework')
-  .version('0.5.0');
+  .version('0.5.1');
 
 program
   .command('init')
