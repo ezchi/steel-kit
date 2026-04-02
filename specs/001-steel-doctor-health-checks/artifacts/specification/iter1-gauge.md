@@ -1,0 +1,17 @@
+BLOCKING: The spec is not implementation-ready because the core stale-surface requirement has no decided detection method. FR-11, FR-12, AC-5, and the third open question leave the implementation choice between hashes, embedded metadata, or regeneration diff unresolved. That is not an internal detail; it changes data model, performance, output shape, and test strategy.
+
+BLOCKING: The diagnostic severity contract is underspecified. FR-16 through FR-20 require `pass`/`warn`/`fail` plus exit-code behavior, but the spec never defines which conditions are `warn` versus `fail`. That makes automation and parity untestable for key cases such as missing non-configured provider CLIs, missing generated surfaces for optional providers, recoverable missing `state.json`, placeholder constitution, or canonical-source gaps.
+
+BLOCKING: The remediation contract is inconsistent with the current command surface. The spec repeatedly requires an “exact regeneration command,” but it does not commit to `steel update` versus `steel refresh`; AC-4 even says “correct refresh command” while Issue 3 explicitly keeps rename/semantic redesign out of scope. In the current repo, regeneration is `steel update`, not `refresh`, so this needs to be fixed in the spec before implementation.
+
+WARNING: Read-only behavior is required, but the spec does not spell out how recovery-oriented checks avoid mutating state. FR-3 says `steel doctor` is read-only, while FR-8 requires reporting recoverable state when `state.json` is absent. In the current code, [`loadState`](/Users/ezchi/Projects/steel-kit/src/workflow.ts) recovers and writes `state.json`, so the spec should explicitly require separate non-mutating inspection logic.
+
+WARNING: “State, branch, and active spec directory” drift is too vague to implement consistently. The spec does not define how to choose the active spec when `state.specId`, branch `spec/<id>`, `specsDir`, and on-disk directories disagree, or how `steel.config.yaml` `specsDir` affects that check. FR-6, FR-7, and AC-3 need deterministic precedence rules.
+
+WARNING: The provider/auth requirements are internally muddy. FR-13 and FR-14 are clear enough to check CLI presence, but FR-15 plus its open question leave “lightweight authentication checks” undefined even though NFR-2 forbids network-required checks. Given the current provider `check()` implementations mostly infer auth from `--version` plus env vars, the spec should either codify that limited behavior or defer auth diagnostics entirely.
+
+WARNING: Canonical-source checks are broader than the repo’s actual generation path. Generated Claude/Gemini/Codex surfaces currently come from [`resources/commands/`](/Users/ezchi/Projects/steel-kit/src/command-installer.ts), while FR-9 and FR-11 imply prompts and templates also participate in installed-surface freshness. If the intent is only existence checks for `prompts/` and `templates/`, say that explicitly; otherwise this expands beyond Issue 1 into a broader provenance/regeneration design.
+
+NOTE: Constitution alignment is generally good. The spec preserves parity, auditability, and read-only diagnostics, and it stays scoped to Issue 1. The main problem is not direction; it is that several requirements remain ambiguous enough that two compliant implementations could behave differently.
+
+VERDICT: REVISE
