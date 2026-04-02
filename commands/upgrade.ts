@@ -1,20 +1,24 @@
 import { execa } from 'execa';
 import { log, die } from '../src/utils.js';
 
-const INSTALL_TARGET = 'github:ezchi/steel-kit';
+const INSTALL_SCRIPT_URL = 'https://raw.githubusercontent.com/ezchi/steel-kit/main/install.sh';
 
 export async function cmdUpgrade(): Promise<void> {
   log.step('Upgrading Steel-Kit...');
-  log.info(`Installing latest Steel-Kit release from ${INSTALL_TARGET}...`);
+  log.info(`Running installer from ${INSTALL_SCRIPT_URL}...`);
 
-  const result = await execa('npm', ['install', '-g', INSTALL_TARGET], {
+  const result = await execa(
+    'bash',
+    ['-lc', `curl -fsSL ${INSTALL_SCRIPT_URL} | bash`],
+    {
     reject: false,
     stdin: 'ignore',
-  });
+    },
+  );
 
   if (result.exitCode !== 0) {
     die(
-      `Upgrade failed: ${result.stderr || result.stdout || 'npm install returned a non-zero exit code.'}`,
+      `Upgrade failed: ${result.stderr || result.stdout || 'installer returned a non-zero exit code.'}`,
     );
   }
 
