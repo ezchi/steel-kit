@@ -88,7 +88,7 @@ After selection, the tool will automatically:
 - Install workflow commands for:
   - Claude Code in `.claude/commands/`
   - Gemini CLI in `.gemini/commands/`
-  - Codex CLI in `.codex/prompts/` and `~/.codex/prompts/`
+  - Codex CLI skills in `.agents/skills/`
 - Auto-commit the initialization to git
 
 No LLM calls are made during init — it completes instantly.
@@ -102,6 +102,7 @@ steel constitution
 This calls the Forge LLM to analyze your project and generate `.steel/constitution.md` with governing principles, coding standards, and constraints. Requires LLM auth to be set up. You can also skip this and edit `.steel/constitution.md` manually.
 
 `steel specify` will refuse to start until `.steel/constitution.md` contains a real project constitution rather than the placeholder template.
+All later workflow stages are blocked by the same gate as well, including `steel next` and `steel run-all`.
 
 ### 2. Run the workflow
 
@@ -162,25 +163,34 @@ steel update
 `steel update` installs or refreshes:
 - Claude Code commands in `.claude/commands/`
 - Gemini CLI commands in `.gemini/commands/`
-- Codex prompts in `.codex/prompts/` and `~/.codex/prompts/`
+- Codex skills in `.agents/skills/`
+
+## Codex CLI Notes
+
+Steel-Kit derives Codex skills from the same canonical workflow command files used for Claude Code and Gemini CLI, so the three agent surfaces stay aligned.
+
+After running `steel init` or `steel update`:
+- Restart Codex CLI if it was already open
+- Use `$steel-init`, `$steel-constitution`, `$steel-specify`, `$steel-plan`, and the other `$steel-*` skills inside Codex
+- The installed skills live in `.agents/skills/`
 
 ## CLI Command Integration
 
-Steel-Kit installs matching workflow commands for Claude Code, Gemini CLI, and Codex CLI:
+Steel-Kit installs matching workflow commands for Claude Code and Gemini CLI, plus matching skills for Codex CLI, from the same canonical source files in `resources/commands/`:
 
-- `/steel-init` — Initialize Steel-Kit
-- `/steel-constitution` — Generate project constitution via LLM
-- `/steel-specify` — Create a specification
-- `/steel-clarify` — Clarify the spec
-- `/steel-plan` — Generate a plan
-- `/steel-tasks` — Break down tasks
-- `/steel-implement` — Run implementation
-- `/steel-validate` — Validate results
-- `/steel-retrospect` — Generate a retrospect
-- `/steel-status` — Check progress
-- `/steel-next` — Run the next stage
-- `/steel-run-all` — Run all remaining stages
-- `/steel-clean` — Remove artifacts and reset workflow
+- `steel-init` / `/steel-init` / `$steel-init` — Initialize Steel-Kit
+- `steel-constitution` / `/steel-constitution` / `$steel-constitution` — Generate project constitution via LLM
+- `steel-specify` / `/steel-specify` / `$steel-specify` — Create a specification
+- `steel-clarify` / `/steel-clarify` / `$steel-clarify` — Clarify the spec
+- `steel-plan` / `/steel-plan` / `$steel-plan` — Generate a plan
+- `steel-tasks` / `/steel-tasks` / `$steel-tasks` — Break down tasks
+- `steel-implement` / `/steel-implement` / `$steel-implement` — Run implementation
+- `steel-validate` / `/steel-validate` / `$steel-validate` — Validate results
+- `steel-retrospect` / `/steel-retrospect` / `$steel-retrospect` — Generate a retrospect
+- `steel-status` / `/steel-status` / `$steel-status` — Check progress
+- `steel-next` / `/steel-next` / `$steel-next` — Run the next stage
+- `steel-run-all` / `/steel-run-all` / `$steel-run-all` — Run all remaining stages
+- `steel-clean` / `/steel-clean` / `$steel-clean` — Remove artifacts and reset workflow
 
 ## Project Structure
 

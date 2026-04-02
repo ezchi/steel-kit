@@ -13,10 +13,11 @@ export async function cmdUpdate(): Promise<void> {
   log.info('Updating project commands for Claude Code, Gemini CLI, and Codex CLI...');
   const result = await installProjectCommands(projectRoot);
   log.success(
-    `Updated commands: Claude=${result.claude}, Gemini=${result.gemini}, Codex(project)=${result.codexProject}, Codex(user)=${result.codexUser}`,
+    `Updated commands: Claude=${result.claude}, Gemini=${result.gemini}, Codex skills=${result.codex}`,
   );
-  if (result.codexUser > 0) {
-    log.info('Codex prompts were also refreshed in ~/.codex/prompts so `/steel-*` stays available in Codex CLI.');
+  if (result.codex > 0) {
+    log.info('Codex skills were refreshed in `.agents/skills/`.');
+    log.info('In Codex, invoke them as `$steel-constitution`, `$steel-specify`, `$steel-plan`, and so on.');
   }
   for (const warning of result.warnings) {
     log.warn(`Command update warning: ${warning}`);

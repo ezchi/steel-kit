@@ -131,10 +131,11 @@ async function installSlashCommands(projectRoot: string): Promise<void> {
   try {
     const result = await installProjectCommands(projectRoot);
     log.success(
-      `Installed commands: Claude=${result.claude}, Gemini=${result.gemini}, Codex(project)=${result.codexProject}, Codex(user)=${result.codexUser}`,
+      `Installed commands: Claude=${result.claude}, Gemini=${result.gemini}, Codex skills=${result.codex}`,
     );
-    if (result.codexUser > 0) {
-      log.info('Codex prompts were also written to ~/.codex/prompts so `/steel-*` is available in Codex CLI.');
+    if (result.codex > 0) {
+      log.info('Codex skills were written to `.agents/skills/`.');
+      log.info('In Codex, invoke them as `$steel-constitution`, `$steel-specify`, `$steel-plan`, and so on.');
     }
     for (const warning of result.warnings) {
       log.warn(`Command install warning: ${warning}`);

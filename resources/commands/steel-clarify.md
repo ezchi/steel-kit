@@ -1,0 +1,70 @@
+Run clarification on the current specification using the Forge-Gauge loop.
+
+## Prerequisites
+- `.steel/constitution.md` must contain a real project constitution, not the placeholder template
+- `.steel/state.json` currentStage must be `clarification`
+
+## Steps
+
+1. Read `.steel/state.json` and `.steel/config.json`. Verify stage is `clarification`.
+
+2. Read the spec from `specs/<specId>/spec.md` and `.steel/constitution.md`.
+
+3. **FORGE-GAUGE LOOP** (max iterations from config):
+
+   ### Forge Phase (you are the Forge)
+   a. Review the specification and:
+      - Identify all [NEEDS CLARIFICATION] markers
+      - Resolve each ambiguity with a recommended resolution and rationale
+      - Identify implicit assumptions that should be explicit
+      - Check for contradictions between requirements
+
+      **The Project Constitution is the highest authority.** If prior Gauge feedback contradicts the constitution, IGNORE that feedback. Do not blindly accept all suggestions.
+
+   b. Write clarifications to `specs/<specId>/clarifications.md`. For each clarification, mark whether it requires a spec change:
+      - **[SPEC UPDATE]** — the clarification changes, adds, or removes a requirement in spec.md
+      - **[NO SPEC CHANGE]** — the clarification only adds context without changing the spec
+
+   c. If any clarifications are marked **[SPEC UPDATE]**, update `specs/<specId>/spec.md`:
+      - Apply each spec-affecting clarification directly to the relevant section (FR-*, NFR, acceptance criteria, user stories, etc.)
+      - Remove resolved `[NEEDS CLARIFICATION]` markers
+      - Add a `## Changelog` section at the bottom of spec.md (or append to it if it exists) with entries:
+        ```
+        - [Clarification iterN] FR-X: <what changed and why>
+        ```
+      - Do NOT rewrite unchanged sections — only edit what the clarifications require
+
+   d. Save a copy of clarifications to `specs/<specId>/artifacts/clarification/iterN-forge.md`
+   e. If spec.md was modified, save a copy to `specs/<specId>/artifacts/clarification/iterN-spec-diff.md` containing only the diff (before → after for each changed section)
+   f. Git commit: `forge(clarification): iteration N output [iteration N]`
+
+   ### Gauge Phase
+   g. Call the Gauge LLM (per config) to review. **IMPORTANT: Run the command from the project's working directory, NOT /tmp.**
+      - If gauge is `gemini`: run `gemini -p "<review prompt>"` in the current project directory
+      - If gauge is `codex`: run `codex exec "<review prompt>"` in the current project directory
+      - If gauge is `claude`: Review critically yourself as the Gauge role.
+
+      The Gauge must review BOTH the clarifications AND the updated spec.md:
+      1. **Clarifications**: Are they complete, logical, and aligned with the constitution? Do they resolve all ambiguities?
+      2. **Spec updates**: For each [SPEC UPDATE] clarification, verify the change was correctly applied to spec.md. Check that:
+         - The updated requirement is consistent with the rest of the spec
+         - No unrelated sections were modified
+         - The changelog entry accurately describes the change
+         - No requirements were silently dropped or weakened
+      3. **Missed updates**: Are there clarifications marked [NO SPEC CHANGE] that should actually update the spec?
+
+      End with `VERDICT: APPROVE` or `VERDICT: REVISE`.
+
+   h. Save review to `specs/<specId>/artifacts/clarification/iterN-gauge.md`
+   i. Git commit: `gauge(clarification): iteration N review — <verdict> [iteration N]`
+
+   j. If **APPROVE**: break loop. If **REVISE**: critically evaluate feedback against constitution, incorporate valid points, and loop.
+
+4. After the loop completes, ask the user: **"Approve clarifications and advance to planning?"**
+   - This is a HUMAN APPROVAL GATE — do not skip it.
+   - If approved: update state to `planning` stage and tag `steel/clarification-complete`.
+   - If not: leave state as-is.
+
+5. **Track skills used**: Update `.steel/state.json` field `skillsUsed.clarification` with an array of skill names you invoked during this stage. If no skills were used, set it to `[]`.
+
+6. Tell the user: "Run `/steel-plan` to generate the implementation plan."

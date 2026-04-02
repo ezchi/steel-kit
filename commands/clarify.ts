@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { getSpecDir, getSteelDir, loadConfig } from '../src/config.js';
+import { getSpecDir, loadConfig } from '../src/config.js';
+import { loadConstitutionIfReady } from '../src/constitution.js';
 import {
   loadState,
   runForgeGaugeLoop,
@@ -29,14 +30,10 @@ export async function cmdClarify(): Promise<void> {
   // Load spec and constitution
   log.info('Loading spec and constitution...');
   const specPath = resolve(getSpecDir(projectRoot, config, state.specId), 'spec.md');
-  const constitutionPath = resolve(getSteelDir(projectRoot), 'constitution.md');
-
   const specContent = existsSync(specPath)
     ? await readFile(specPath, 'utf-8')
     : undefined;
-  const constitution = existsSync(constitutionPath)
-    ? await readFile(constitutionPath, 'utf-8')
-    : undefined;
+  const constitution = await loadConstitutionIfReady(projectRoot);
 
   if (!specContent) {
     die(`Spec file not found: ${specPath}`);

@@ -1,10 +1,7 @@
-import { readFile } from 'node:fs/promises';
 import { existsSync, readdirSync } from 'node:fs';
-import { resolve } from 'node:path';
 import {
   type SteelConfig,
   getSpecsDir,
-  getSteelDir,
   loadConfig,
 } from '../src/config.js';
 import {
@@ -14,7 +11,8 @@ import {
   advanceStage,
 } from '../src/workflow.js';
 import { initBranch } from '../src/git-ops.js';
-import { isPlaceholderConstitution, log, die } from '../src/utils.js';
+import { loadConstitutionIfReady } from '../src/constitution.js';
+import { log, die } from '../src/utils.js';
 
 export async function cmdSpecify(description: string): Promise<void> {
   log.step(`Starting specification: "${description}"`);
@@ -32,17 +30,7 @@ export async function cmdSpecify(description: string): Promise<void> {
     );
   }
 
-  // Generate spec ID from description
-  const constitutionPath = resolve(getSteelDir(projectRoot), 'constitution.md');
-  const constitution = existsSync(constitutionPath)
-    ? await readFile(constitutionPath, 'utf-8')
-    : undefined;
-
-  if (!constitution || isPlaceholderConstitution(constitution)) {
-    die(
-      'Constitution is not set. Run `steel constitution` or edit `.steel/constitution.md` before `steel specify`.',
-    );
-  }
+  const constitution = await loadConstitutionIfReady(projectRoot);
 
   const specId = generateSpecId(projectRoot, config, description);
   state.specId = specId;

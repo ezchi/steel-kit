@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { getSpecDir, getSteelDir, loadConfig } from '../src/config.js';
+import { getSpecDir, loadConfig } from '../src/config.js';
+import { loadConstitutionIfReady } from '../src/constitution.js';
 import {
   advanceStage,
   loadState,
@@ -32,7 +33,6 @@ export async function cmdRetrospect(): Promise<void> {
   const planPath = resolve(specDir, 'plan.md');
   const tasksPath = resolve(specDir, 'tasks.md');
   const validationPath = resolve(specDir, 'validation.md');
-  const constitutionPath = resolve(getSteelDir(projectRoot), 'constitution.md');
 
   const specContent = existsSync(specPath)
     ? await readFile(specPath, 'utf-8')
@@ -46,9 +46,7 @@ export async function cmdRetrospect(): Promise<void> {
   const validationContent = existsSync(validationPath)
     ? await readFile(validationPath, 'utf-8')
     : undefined;
-  const constitution = existsSync(constitutionPath)
-    ? await readFile(constitutionPath, 'utf-8')
-    : undefined;
+  const constitution = await loadConstitutionIfReady(projectRoot);
 
   const reviewContext = [
     specContent ? `## Specification\n${specContent}` : '',

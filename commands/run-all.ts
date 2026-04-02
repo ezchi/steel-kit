@@ -1,4 +1,5 @@
 import { loadConfig } from '../src/config.js';
+import { loadConstitutionIfReady } from '../src/constitution.js';
 import { loadState } from '../src/workflow.js';
 import { log, die } from '../src/utils.js';
 import { cmdClarify } from './clarify.js';
@@ -37,9 +38,12 @@ export async function cmdRunAll(): Promise<void> {
   const stage = state.currentStage;
 
   if (stage === 'specification') {
-    die(
-      `Cannot use 'run-all' at stage '${stage}'. Run 'steel specify "<desc>"' first.`,
-    );
+    await loadConstitutionIfReady(projectRoot);
+    die(`Cannot use 'run-all' at stage '${stage}'. Run 'steel specify "<desc>"' first.`);
+  }
+
+  if (state.specId) {
+    await loadConstitutionIfReady(projectRoot);
   }
 
   // Find where we are in the stage order

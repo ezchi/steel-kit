@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { getSpecDir, getSteelDir, loadConfig } from '../src/config.js';
+import { getSpecDir, loadConfig } from '../src/config.js';
+import { loadConstitutionIfReady } from '../src/constitution.js';
 import {
   loadState,
   runForgeGaugeLoop,
@@ -30,7 +31,6 @@ export async function cmdValidate(): Promise<void> {
   log.info('Loading spec, plan, and constitution...');
   const specPath = resolve(specDir, 'spec.md');
   const planPath = resolve(specDir, 'plan.md');
-  const constitutionPath = resolve(getSteelDir(projectRoot), 'constitution.md');
 
   const specContent = existsSync(specPath)
     ? await readFile(specPath, 'utf-8')
@@ -38,9 +38,7 @@ export async function cmdValidate(): Promise<void> {
   const planContent = existsSync(planPath)
     ? await readFile(planPath, 'utf-8')
     : undefined;
-  const constitution = existsSync(constitutionPath)
-    ? await readFile(constitutionPath, 'utf-8')
-    : undefined;
+  const constitution = await loadConstitutionIfReady(projectRoot);
 
   log.info(`Validating implementation for: ${state.specId}`);
   log.step('Starting Forge-Gauge validation loop...');
