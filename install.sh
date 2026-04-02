@@ -8,6 +8,8 @@ INSTALL_ROOT="${STEEL_INSTALL_ROOT:-${XDG_DATA_HOME:-$HOME/.local/share}/steel-k
 BIN_DIR="${STEEL_BIN_DIR:-$HOME/.local/bin}"
 REF="$DEFAULT_REF"
 SOURCE_DIR="${STEEL_INSTALL_SOURCE_DIR:-}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOCAL_SOURCE=false
 
 usage() {
   cat <<EOF
@@ -69,8 +71,13 @@ trap cleanup EXIT
 SOURCE_WORKTREE=""
 if [[ -n "$SOURCE_DIR" ]]; then
   SOURCE_WORKTREE="$SOURCE_DIR"
+  LOCAL_SOURCE=true
 elif [[ -f "./package.json" && -f "./dist/src/cli.js" && -d "./resources" ]]; then
   SOURCE_WORKTREE="$(pwd)"
+  LOCAL_SOURCE=true
+elif [[ -f "$SCRIPT_DIR/package.json" && -f "$SCRIPT_DIR/dist/src/cli.js" && -d "$SCRIPT_DIR/resources" ]]; then
+  SOURCE_WORKTREE="$SCRIPT_DIR"
+  LOCAL_SOURCE=true
 else
   need_cmd curl
   ARCHIVE="$TMP_DIR/steel-kit.tar.gz"
@@ -82,6 +89,11 @@ else
   curl -fsSL "$URL" -o "$ARCHIVE"
   tar -xzf "$ARCHIVE" -C "$TMP_DIR"
   SOURCE_WORKTREE="$(find "$TMP_DIR" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+fi
+
+if [[ "$LOCAL_SOURCE" == "true" ]]; then
+  echo "Building Steel-Kit from local source..."
+  (cd "$SOURCE_WORKTREE" && npm run build)
 fi
 
 if [[ ! -f "$SOURCE_WORKTREE/dist/src/cli.js" ]]; then

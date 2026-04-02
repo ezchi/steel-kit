@@ -56,6 +56,14 @@ curl -fsSL https://raw.githubusercontent.com/ezchi/steel-kit/main/install.sh | b
 This installs Steel-Kit into `~/.local/share/steel-kit` and creates the `steel` launcher in `~/.local/bin/steel`.
 Make sure `~/.local/bin` is on your `PATH`.
 
+You can also run the installer from a local checkout:
+
+```bash
+./install.sh
+```
+
+That installs from the local repository instead of downloading from GitHub.
+
 ### From source (local development only)
 
 ```bash
