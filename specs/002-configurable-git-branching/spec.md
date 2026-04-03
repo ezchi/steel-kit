@@ -74,7 +74,9 @@ This specification aligns with the project constitution:
 
 - FR-14: The `specify` command in `src/cli.ts` shall accept an optional `--id <value>` option for supplying a custom spec identifier. The value is a single path segment (no `/` allowed) and must satisfy `git check-ref-format --allow-onelevel` rules: no spaces, ASCII control characters, or characters `~`, `^`, `:`, `?`, `*`, `[`, `\`; no sequences of `..`; must not end with `.lock` or `.`; must not begin with `.` or `-`. If the value fails validation, the command shall reject it with a clear error identifying the offending character(s) or pattern(s) (e.g. "invalid character '~'" or "contains forbidden sequence '..'"). No branch or file creation shall occur before validation passes.
 - FR-15: When `--id` is provided, `generateSpecId()` shall use the supplied value verbatim as the identifier prefix instead of auto-incrementing. The value is not zero-padded or otherwise transformed. The resulting specId is `<value>-<semantic-name>` (e.g. `PROJ-21-add-auth`).
+- FR-15a: When `--id` is provided and `specs/<specId>/` already exists, `generateSpecId()` shall fail with a clear error: `"Spec directory 'specs/<specId>' already exists. Use a different --id or remove the existing spec."` No branch or file creation shall occur.
 - FR-16: When `--id` is omitted, `generateSpecId()` shall continue to auto-increment with 3-digit zero-padding (current behavior).
+- FR-16a: `generateSpecId()` shall be an exported function in `src/spec-id.ts` (extracted from `commands/specify.ts`) to enable direct unit testing of ID generation, validation, and collision detection.
 - FR-17: The `specify` command shall call `resolveGitConfig(config)` and pass the resolved config to `initBranch()`.
 - FR-18: The `specify` command shall use the branch name returned by `initBranch()` instead of reconstructing `spec/${specId}`.
 
@@ -153,3 +155,8 @@ This specification aligns with the project constitution:
 ## Open Questions
 
 None at this time.
+
+## Changelog
+
+- [Clarification iter1] FR-15a: Added collision detection — `generateSpecId()` fails with clear error when `--id` produces a specId whose directory already exists.
+- [Clarification iter1] FR-16a: Extracted `generateSpecId()` to `src/spec-id.ts` as an exported function for direct unit testing.
