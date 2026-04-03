@@ -33,17 +33,23 @@ export const GIT_PRESETS: Record<GitWorkflow, Omit<ResolvedGitConfig, 'workflow'
 // Resolution
 export function resolveGitConfig(config: SteelConfig): ResolvedGitConfig;
 
-// Validation (shared by resolveGitConfig and steel init)
-export function validateBranchRef(value: string, fieldName: string): void;
-export function validateSpecIdComponent(value: string): void;
+// Validation — field-aware, shared by resolveGitConfig and steel init (CLR-6)
+export function validateBranchPrefix(value: string): void;   // allows trailing /, rejects empty, .., control chars
+export function validateBranchName(value: string, fieldName: string): void;  // full branch name rules (baseBranch, developBranch)
+export function validateSpecIdComponent(value: string): void; // single path segment, no /
+export function validateComposedRef(prefix: string, specId: string): void;   // validates prefix+specId as valid git ref
 ```
 
 **Dependencies**: `src/config.ts` (one-way — imports types only)
 
 **Design decisions**:
 - Types defined in `config.ts`, logic in `git-config.ts` — clean acyclic dependency graph.
+- **Three-tier validation** (addresses NFR-5 fully):
+  1. `validateBranchPrefix()` — validates prefix characters but permits trailing `/` (unlike branch names, prefixes like `spec/` and `feature/` are valid). Rejects empty, `..`, control chars, `~^:?*[\`.
+  2. `validateBranchName()` — validates `baseBranch` and `developBranch` as complete git branch names (no trailing `/`, standard `git check-ref-format` rules).
+  3. `validateComposedRef()` — validates the full composed ref `branchPrefix + specId` as a valid git ref. Called by `resolveGitConfig()` after resolution. This is the final safety net per NFR-5: even if individual fields pass, the composition must be valid.
 - Validation functions exported so both `resolveGitConfig()` (NFR-5) and `steel init` (FR-26) share the same logic (CLR-6).
-- Preset values (`spec/`, `feature/`) skip validation since they are known-valid (NFR-5).
+- Preset values (`spec/`, `feature/`) skip per-field validation since they are known-valid (NFR-5). Composed-ref validation still runs when combined with user-supplied specIds.
 
 ### 2. `src/spec-id.ts` (NEW)
 
@@ -126,7 +132,7 @@ export function slugify(description: string): string;
 - Add two new `input()` prompts after provider selection:
   - Base branch (default: `"main"`)
   - Branch prefix (default: `"spec/"`)
-- Validate inputs using `validateBranchRef()` from `git-config.ts`; re-prompt on failure (FR-26).
+- Validate base branch using `validateBranchName()` and branch prefix using `validateBranchPrefix()` from `git-config.ts`; re-prompt on failure (FR-26).
 - Merge validated values into `.steel/config.json` under the `git` key, preserving all other fields (FR-27). Implementation: after provider prompts, read existing config, merge `git` sub-object, write back via `saveConfig()`.
 
 ### 9. `src/cli.ts` (MODIFIED)
@@ -188,8 +194,15 @@ const GIT_PRESETS = {
 3. Look up preset defaults for that workflow
 4. For each field (branchPrefix, baseBranch, developBranch):
    - Use explicit value if set in config → else preset default → else steel preset default
-5. Validate all resolved values (skip for known-valid preset defaults)
-6. Return ResolvedGitConfig
+5. Validate resolved values with field-appropriate validators:
+   - branchPrefix → validateBranchPrefix() (allows trailing /, rejects empty)
+   - baseBranch → validateBranchName() (standard git branch name rules)
+   - developBranch → validateBranchName() (if present)
+   - Skip per-field validation for known-valid preset defaults (NFR-5)
+6. Note: composed-ref validation (branchPrefix + specId) runs at branch-creation
+   time in initBranch() via validateComposedRef(), not during config resolution,
+   because specId is not yet known during resolution.
+7. Return ResolvedGitConfig
 ```
 
 ### Environment Variable Mapping
@@ -208,8 +221,10 @@ const GIT_PRESETS = {
 ```typescript
 // src/git-config.ts
 function resolveGitConfig(config: SteelConfig): ResolvedGitConfig;
-function validateBranchRef(value: string, fieldName: string): void;
+function validateBranchPrefix(value: string): void;
+function validateBranchName(value: string, fieldName: string): void;
 function validateSpecIdComponent(value: string): void;
+function validateComposedRef(prefix: string, specId: string): void;
 
 // src/spec-id.ts
 function generateSpecId(opts: GenerateSpecIdOpts): string;
@@ -251,14 +266,16 @@ src/spec-id.ts (ID generation + slugification)
 
 ## Implementation Strategy
 
-### Phase 1: Foundation (no behavioral changes)
+### Phase 1: Config layer and new modules (no branch creation/recovery changes)
 
-1. **Create `src/git-config.ts`**: Types, preset registry, `resolveGitConfig()`, validation functions.
+Isolated changes to config loading, resolution, and spec ID generation. Existing branch creation, recovery, and doctor behavior is untouched. Changes are backward-compatible: with no `git` config, `resolveGitConfig()` returns steel-preset defaults matching current hardcoded values.
+
+1. **Create `src/git-config.ts`**: Types, preset registry, `resolveGitConfig()`, validation functions (`validateBranchPrefix`, `validateBranchName`, `validateSpecIdComponent`, `validateComposedRef`).
 2. **Create `src/spec-id.ts`**: Extract `generateSpecId()` from `commands/specify.ts`, add `slugify()`, add `--id` validation and collision detection.
 3. **Update `src/config.ts`**: Add `git?: GitConfig` to `SteelConfig`, add `STEEL_GIT_*` env var handling, update `mergeConfig()` deep-merge.
 4. **Write tests**: `src/git-config.test.ts`, `src/spec-id.test.ts`, `src/config.test.ts` (AC-1–5, AC-14–15, AC-18–26, AC-30–34).
 
-**Gate**: `npm run build && npm test && npm run lint` pass. No existing behavior changed.
+**Gate**: `npm run build && npm test && npm run lint` pass. Config resolution and env var handling verified correct. No changes to branch creation or recovery.
 
 ### Phase 2: Core integration
 
@@ -310,11 +327,18 @@ src/spec-id.ts (ID generation + slugification)
 
 **`src/git-config.test.ts`** (NEW):
 - `resolveGitConfig()` with no config → steel defaults (AC-1)
-- `resolveGitConfig()` with gitflow → gitflow defaults (AC-2)
+- `resolveGitConfig()` with gitflow → gitflow defaults including `developBranch: 'develop'` (AC-2)
 - `resolveGitConfig()` with gitflow + explicit override → override wins (AC-3)
-- `validateBranchRef()` rejects empty (AC-18/25), `..` (AC-24), `~` (AC-26)
+- `resolveGitConfig()` with explicit `developBranch` validates it as a valid branch name (NFR-5)
+- `resolveGitConfig()` with invalid `developBranch` (e.g. `develop~1`) → rejects with clear error (NFR-5)
+- `validateBranchPrefix()` accepts `spec/`, `feature/`, `eda-` (trailing `/` allowed)
+- `validateBranchPrefix()` rejects empty (AC-18/25), `..` (AC-24)
+- `validateBranchName()` rejects `~` (AC-26), trailing `/`, empty
+- `validateBranchName()` accepts `main`, `develop`, `release/v1`
 - `validateSpecIdComponent()` rejects space (AC-19), `~` (AC-20), `/` (AC-22), `..` (AC-23)
 - `validateSpecIdComponent()` accepts valid values (AC-21)
+- `validateComposedRef()` accepts `spec/` + `001-test`, `feature/` + `PROJ-21-auth`
+- `validateComposedRef()` rejects compositions that form invalid git refs
 
 **`src/spec-id.test.ts`** (NEW):
 - `generateSpecId()` with `--id` → custom prefix (AC-4)
@@ -327,8 +351,11 @@ src/spec-id.ts (ID generation + slugification)
 
 **`src/config.test.ts`** (NEW):
 - `mergeConfig()` deep-merges `git` sub-object (FR-6)
-- `loadConfig()` with `STEEL_GIT_BRANCH_PREFIX` env var (AC-14)
-- `loadConfig()` with invalid `STEEL_GIT_WORKFLOW` env var (AC-15)
+- `loadConfig()` with `STEEL_GIT_BRANCH_PREFIX` env var overrides config (AC-14)
+- `loadConfig()` with `STEEL_GIT_BASE_BRANCH` env var overrides config (FR-7)
+- `loadConfig()` with `STEEL_GIT_DEVELOP_BRANCH` env var overrides config (FR-7)
+- `loadConfig()` with invalid `STEEL_GIT_WORKFLOW` env var → warning, default applies (AC-15)
+- `loadConfig()` with multiple `STEEL_GIT_*` env vars simultaneously → all applied correctly
 
 ### Integration Tests
 
