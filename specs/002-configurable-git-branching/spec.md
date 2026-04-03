@@ -74,6 +74,7 @@ This specification aligns with the project constitution:
 
 - FR-14: The `specify` command in `src/cli.ts` shall accept an optional `--id <value>` option for supplying a custom spec identifier. The value is a single path segment (no `/` allowed) and must satisfy `git check-ref-format --allow-onelevel` rules: no spaces, ASCII control characters, or characters `~`, `^`, `:`, `?`, `*`, `[`, `\`; no sequences of `..`; must not end with `.lock` or `.`; must not begin with `.` or `-`. If the value fails validation, the command shall reject it with a clear error identifying the offending character(s) or pattern(s) (e.g. "invalid character '~'" or "contains forbidden sequence '..'"). No branch or file creation shall occur before validation passes.
 - FR-15: When `--id` is provided, `generateSpecId()` shall use the supplied value verbatim as the identifier prefix instead of auto-incrementing. The value is not zero-padded or otherwise transformed. The resulting specId is `<value>-<semantic-name>` (e.g. `PROJ-21-add-auth`).
+- FR-15b: The `<semantic-name>` portion of the specId shall be derived from the description argument using the following slugification algorithm: (1) lowercase the string, (2) strip all characters that are not `a-z`, `0-9`, or whitespace, (3) trim leading/trailing whitespace, (4) collapse consecutive whitespace to a single hyphen, (5) truncate to 40 characters. This algorithm applies identically whether `--id` is provided or omitted.
 - FR-15a: When `--id` is provided and `specs/<specId>/` already exists, `generateSpecId()` shall fail with a clear error: `"Spec directory 'specs/<specId>' already exists. Use a different --id or remove the existing spec."` No branch or file creation shall occur.
 - FR-16: When `--id` is omitted, `generateSpecId()` shall continue to auto-increment with 3-digit zero-padding (current behavior).
 - FR-16a: `generateSpecId()` shall be an exported function in `src/spec-id.ts` (extracted from `commands/specify.ts`) to enable direct unit testing of ID generation, validation, and collision detection.
@@ -142,6 +143,8 @@ This specification aligns with the project constitution:
 - AC-27: `steel init` on an existing project with `forge: codex, gauge: codex` config, when re-run with new git values, preserves `forge`, `gauge`, `maxIterations`, `autoCommit`, `specsDir` and only adds/updates the `git` key.
 - AC-28: `steel init` with user entering `baseBranch: "main~1"` re-prompts with an error about `~` before accepting a corrected value.
 - AC-29: `npm run build` compiles without errors; `npm test` passes; `npm run lint` type-checks.
+- AC-30: `generateSpecId` with `--id PROJ-21` and description `"add auth"` when `specs/PROJ-21-add-auth/` already exists → fails with error `"Spec directory 'specs/PROJ-21-add-auth' already exists."` No branch or file creation occurs.
+- AC-31: `generateSpecId` with `--id PROJ-21` and description `"Add Auth!!!"` produces specId `PROJ-21-add-auth` (slugification: lowercase, strip non-alphanumeric, collapse whitespace to hyphens).
 
 ## Out of Scope
 
@@ -160,3 +163,6 @@ None at this time.
 
 - [Clarification iter1] FR-15a: Added collision detection — `generateSpecId()` fails with clear error when `--id` produces a specId whose directory already exists.
 - [Clarification iter1] FR-16a: Extracted `generateSpecId()` to `src/spec-id.ts` as an exported function for direct unit testing.
+- [Clarification iter2] FR-15b: Codified slugification algorithm for `<semantic-name>` derivation (was implicit, now normative).
+- [Clarification iter2] AC-30: Added acceptance criterion for FR-15a collision detection.
+- [Clarification iter2] AC-31: Added acceptance criterion for slugification behavior.
