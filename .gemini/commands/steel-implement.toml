@@ -16,6 +16,8 @@ Implement all tasks using the Forge-Gauge loop. This is the stage where actual c
 
 3. **FOR EACH TASK** in `.steel/tasks.json`:
 
+   **CRITICAL — NO SKIPPING GAUGE:** Batching multiple tasks into a single forge iteration is allowed, but every task MUST receive a Gauge code review with a VERDICT before the implementation stage can advance. Each task must have its own `taskN-iterM-gauge.md` artifact. Do NOT skip the Gauge review for any task, regardless of how simple it appears. If tasks were batched in forge, run a separate Gauge review for each task in the batch. A task without a Gauge APPROVE verdict is not complete.
+
    Show: `=== Task N/total: <title> ===`
 
    **FORGE-GAUGE LOOP** (max iterations from config):

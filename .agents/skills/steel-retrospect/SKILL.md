@@ -15,6 +15,8 @@ Review the entire workflow to extract learnings, memory candidates, and skill im
 
 ## Steps
 
+0. Run `/clear` to clear the conversation context before starting this stage.
+
 1. Read `.steel/state.json` and `.steel/config.json`. Verify stage is `retrospect`.
 
 2. Gather all workflow artifacts:

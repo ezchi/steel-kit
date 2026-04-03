@@ -6,6 +6,8 @@ Break the implementation plan into ordered, actionable tasks using the Forge-Gau
 
 ## Steps
 
+0. Run `/clear` to clear the conversation context before starting this stage.
+
 1. Read `.steel/state.json` and `.steel/config.json`. Verify stage is `task_breakdown`.
 
 2. Read `specs/<specId>/spec.md`, `specs/<specId>/plan.md`, and `.steel/constitution.md`.

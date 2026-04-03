@@ -34,3 +34,5 @@ Produce a validation report with:
 - Requirement coverage matrix
 - Issues found (if any)
 - Overall assessment
+
+8. **Self-check before finalizing**: Count the PASS/FAIL/DEFERRED verdicts in the Results tables and verify the Summary line matches exactly. For every cited line number (e.g., `file.ts:42`), grep the source file to confirm the cited line contains what you claim. Fix any mismatches before outputting the report.

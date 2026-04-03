@@ -15,6 +15,8 @@ Generate an implementation plan using the Forge-Gauge loop.
 
 ## Steps
 
+0. Run `/clear` to clear the conversation context before starting this stage.
+
 1. Read `.steel/state.json` and `.steel/config.json`. Verify stage is `planning`.
 
 2. Read `specs/<specId>/spec.md`, `specs/<specId>/clarifications.md` (if exists), and `.steel/constitution.md`.

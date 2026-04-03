@@ -18,6 +18,8 @@ Feature description: the user-provided input
 
 ## Steps
 
+0. Run `/clear` to clear the conversation context before starting this stage.
+
 1. Read `.steel/state.json` and `.steel/config.json`. Verify stage is `specification`.
 
 2. Generate a spec ID: count existing directories in `specs/`, increment, and create `specs/NNN-<semantic-name>/` where the name is derived from the user-provided input.
@@ -67,10 +69,63 @@ Feature description: the user-provided input
    j. If **APPROVE**: mark stage complete, break the loop.
    k. If **REVISE**: critically evaluate the feedback against the constitution, incorporate valid feedback, and loop back to Forge Phase.
 
-7. After the loop completes, ask the user: **"Approve specification and advance to clarification?"**
-   - This is a HUMAN APPROVAL GATE — do not skip it.
-   - If approved: update state to `clarification` stage and tag `steel/specification-complete`.
-   - If not: leave state as-is so user can re-run.
+7. **HUMAN APPROVAL GATE** — do not skip this.
+
+   Ask the user: **"Approve specification and advance to clarification?"**
+
+   - If **approved**: update state to `clarification` stage, tag `steel/specification-complete`, and go to step 8.
+   - If **rejected**: enter **Delta Clarification Mode** (step 7a).
+
+   ### 7a. Delta Clarification Mode
+
+   This mode processes ONLY the user's new feedback without re-running the full Forge-Gauge loop on already-approved content.
+
+   1. **Collect feedback**: Ask the user what specific changes they want. Record their response verbatim as `userFeedback`.
+
+   2. **DELTA FORGE-GAUGE LOOP** (max iterations from config):
+
+      #### Delta Forge Phase
+      a. Read the current `specs/<specId>/spec.md`. This is the approved baseline — do NOT regenerate it from scratch.
+      b. Address ONLY the items in `userFeedback`. For each feedback item:
+         - Identify the specific section(s) of spec.md affected
+         - Make targeted edits to those sections only
+         - Do NOT rewrite, reorder, or "improve" sections the user did not mention
+      c. Save delta to `specs/<specId>/artifacts/specification/iterN-delta-forge.md` with this structure:
+         ```markdown
+         # Delta Revision — Iteration N
+
+         ## User Feedback
+         (verbatim user feedback)
+
+         ## Changes Made
+         (for each change: which section, what changed, why)
+
+         ## Sections NOT Modified
+         (list sections that were already approved and left untouched)
+         ```
+      d. Git commit: `forge(specification): delta iteration N [delta N]`
+
+      #### Delta Gauge Phase
+      e. The Gauge reviews ONLY the delta — not the entire spec from scratch. Provide the Gauge with:
+         - The user's feedback (what was requested)
+         - The diff of changes made (before → after for each modified section)
+         - The full updated spec.md (for context, but the review focuses on the delta)
+
+         The Gauge MUST check:
+         1. Does each change correctly address the corresponding user feedback item?
+         2. Were any unrelated sections modified? (If so: REVISE)
+         3. Are the changes consistent with the rest of the spec and the constitution?
+         4. Is any user feedback item left unaddressed?
+
+         End with `VERDICT: APPROVE` or `VERDICT: REVISE`.
+
+      f. Save review to `specs/<specId>/artifacts/specification/iterN-delta-gauge.md`
+      g. Git commit: `gauge(specification): delta iteration N review — <verdict> [delta N]`
+      h. If **REVISE**: Forge fixes only the disputed items, loop back to Delta Forge Phase.
+      i. If **APPROVE**: exit delta loop.
+
+   3. Return to the approval gate (step 7) — ask the user again: **"Approve specification and advance to clarification?"**
+      The user may approve, or reject again with new feedback (re-entering Delta Clarification Mode).
 
 8. **Track skills used**: Update `.steel/state.json` field `skillsUsed.specification` with an array of skill names you invoked during this stage (e.g., `["systemverilog-core", "sv-gen"]`). If no skills were used, set it to `[]`.
 

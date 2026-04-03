@@ -15,6 +15,8 @@ Run clarification on the current specification using the Forge-Gauge loop.
 
 ## Steps
 
+0. Run `/clear` to clear the conversation context before starting this stage.
+
 1. Read `.steel/state.json` and `.steel/config.json`. Verify stage is `clarification`.
 
 2. Read the spec from `specs/<specId>/spec.md` and `.steel/constitution.md`.
@@ -69,10 +71,65 @@ Run clarification on the current specification using the Forge-Gauge loop.
 
    j. If **APPROVE**: break loop. If **REVISE**: critically evaluate feedback against constitution, incorporate valid points, and loop.
 
-4. After the loop completes, ask the user: **"Approve clarifications and advance to planning?"**
-   - This is a HUMAN APPROVAL GATE — do not skip it.
-   - If approved: update state to `planning` stage and tag `steel/clarification-complete`.
-   - If not: leave state as-is.
+4. **HUMAN APPROVAL GATE** — do not skip this.
+
+   Ask the user: **"Approve clarifications and advance to planning?"**
+
+   - If **approved**: update state to `planning` stage, tag `steel/clarification-complete`, and go to step 5.
+   - If **rejected**: enter **Delta Clarification Mode** (step 4a).
+
+   ### 4a. Delta Clarification Mode
+
+   This mode processes ONLY the user's new feedback without re-running the full Forge-Gauge loop on already-approved content.
+
+   1. **Collect feedback**: Ask the user what specific changes they want. Record their response verbatim as `userFeedback`.
+
+   2. **DELTA FORGE-GAUGE LOOP** (max iterations from config):
+
+      #### Delta Forge Phase
+      a. Read the current `specs/<specId>/clarifications.md` and `specs/<specId>/spec.md`. These are the approved baseline — do NOT regenerate them from scratch.
+      b. Address ONLY the items in `userFeedback`. For each feedback item:
+         - Identify the specific section(s) of clarifications.md and/or spec.md affected
+         - Make targeted edits to those sections only
+         - Do NOT rewrite, reorder, or "improve" sections the user did not mention
+         - If a feedback item requires a spec change, follow the same [SPEC UPDATE] / changelog rules from the main loop
+      c. Save delta to `specs/<specId>/artifacts/clarification/iterN-delta-forge.md` with this structure:
+         ```markdown
+         # Delta Revision — Iteration N
+
+         ## User Feedback
+         (verbatim user feedback)
+
+         ## Changes Made
+         (for each change: which file/section, what changed, why)
+
+         ## Sections NOT Modified
+         (list sections that were already approved and left untouched)
+         ```
+      d. Git commit: `forge(clarification): delta iteration N [delta N]`
+
+      #### Delta Gauge Phase
+      e. The Gauge reviews ONLY the delta — not the entire clarifications from scratch. Provide the Gauge with:
+         - The user's feedback (what was requested)
+         - The diff of changes made (before → after for each modified section)
+         - The full updated clarifications.md and spec.md (for context, but the review focuses on the delta)
+
+         The Gauge MUST check:
+         1. Does each change correctly address the corresponding user feedback item?
+         2. Were any unrelated sections modified? (If so: REVISE)
+         3. Are the changes consistent with the rest of the spec and the constitution?
+         4. If spec.md was modified, was the changelog updated correctly?
+         5. Is any user feedback item left unaddressed?
+
+         End with `VERDICT: APPROVE` or `VERDICT: REVISE`.
+
+      f. Save review to `specs/<specId>/artifacts/clarification/iterN-delta-gauge.md`
+      g. Git commit: `gauge(clarification): delta iteration N review — <verdict> [delta N]`
+      h. If **REVISE**: Forge fixes only the disputed items, loop back to Delta Forge Phase.
+      i. If **APPROVE**: exit delta loop.
+
+   3. Return to the approval gate (step 4) — ask the user again: **"Approve clarifications and advance to planning?"**
+      The user may approve, or reject again with new feedback (re-entering Delta Clarification Mode).
 
 5. **Track skills used**: Update `.steel/state.json` field `skillsUsed.clarification` with an array of skill names you invoked during this stage. If no skills were used, set it to `[]`.
 
