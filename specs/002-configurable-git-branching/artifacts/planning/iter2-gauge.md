@@ -1,16 +1,17 @@
-# Gauge Review — Planning Iteration 2
-
 ## Findings
 
-1. **BLOCKING: Re-init preservation not sound.** `initConfig()` in `src/config.ts` rewrites the whole config when `skipWrite` is false. The plan says to "after provider prompts complete via initConfig(), separately read config, add/update git key" — but if `initConfig()` already overwrote the file, non-git fields may be gone before the merge. Need explicit refactoring: either split `initConfig()` into prompt-only + write phases, or bypass its write path during re-init.
+### MAJOR: Composed-ref validation is deferred past `resolveGitConfig()`
+**Severity**: major  
+**Details**: The plan has an internal contradiction. In Components, `validateComposedRef()` is described as being called by `resolveGitConfig()` after resolution, which matches NFR-5. But the Resolution Algorithm later explicitly moves composed-ref validation to branch creation time in `initBranch()`. That weakens the design: it no longer satisfies the spec's requirement that invalid git config be rejected during resolution, and non-`specify` consumers like recovery/doctor can load an invalid config without failing early.  
+**Suggestion**: Make `resolveGitConfig()` perform the final composed-ref validation using a known-valid dummy suffix or equivalent strategy, so invalid prefixes are rejected during config resolution. Keep `initBranch()` free to revalidate defensively, but not as the primary enforcement point.
 
-2. **BLOCKING: Surface parity lacks automated tests.** The plan gives surfaces an implementation home (resources/commands/steel-specify.md) but Phase 5 "run steel update and verify" is manual. Need an automated test proving updated canonical markdown propagates into installed provider artifacts.
+### MINOR: Interactive init testing does not verify branch-prefix re-prompt behavior
+**Severity**: minor  
+**Details**: The plan's `commands/init.test.ts` coverage includes storing git values, preserving existing config, and re-prompting for an invalid `baseBranch`, but does not explicitly test the same re-prompt loop for an invalid `branchPrefix`. FR-26 requires both prompts to validate and re-ask with a clear error.  
+**Suggestion**: Add an init-command test where the user enters an invalid `branchPrefix` such as `feat..ure/`, verify the prompt rejects it with a clear error, and confirm only the corrected value is persisted.
 
-## Iteration 1 Issue Check
+## Summary
 
-1. Provider-surface parity: **Partially resolved** (implementation home yes, automated test no)
-2. `specify` command-level AC coverage: **Resolved**
-3. Cyclic dependency: **Resolved**
-4. Config cascade test layer / AC-27 clarity: **Partially resolved** (loadConfig tests yes, re-init design unsound)
+Revision 2 fixes most of the iteration-1 issues: the validation design is now properly split by field type, the test strategy explicitly covers all env vars, and the phasing language is much clearer. The remaining blocker is that composed branch-ref validation is deferred too late, conflicting with NFR-5.
 
-VERDICT: REVISE
+## VERDICT: REVISE
