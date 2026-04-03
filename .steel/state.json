@@ -1,37 +1,31 @@
 {
-  "currentStage": "retrospect",
+  "currentStage": "specification",
   "iteration": 1,
-  "specId": "001-steel-doctor-health-checks",
-  "branch": "spec/001-steel-doctor-health-checks",
-  "description": "docs/roadmap-issues.md only implement issue-1 of it",
+  "specId": "002-configurable-git-branching",
+  "branch": "spec/002-configurable-git-branching",
+  "description": "Add configurable git branching workflow support (gitflow, GitHub Flow, custom prefixes, --id flag)",
   "stages": {
     "specification": {
-      "status": "complete",
-      "iteration": 3
+      "status": "in_progress",
+      "iteration": 1
     },
     "clarification": {
-      "status": "complete",
-      "iteration": 1
+      "status": "pending"
     },
     "planning": {
-      "status": "complete",
-      "iteration": 1
+      "status": "pending"
     },
     "task_breakdown": {
-      "status": "complete",
-      "iteration": 1
+      "status": "pending"
     },
     "implementation": {
-      "status": "complete",
-      "iteration": 1
+      "status": "pending"
     },
     "validation": {
-      "status": "complete",
-      "iteration": 1
+      "status": "pending"
     },
     "retrospect": {
-      "status": "complete",
-      "iteration": 1
+      "status": "pending"
     }
   },
   "skillsUsed": {
