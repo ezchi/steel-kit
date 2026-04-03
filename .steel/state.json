@@ -1,16 +1,17 @@
 {
-  "currentStage": "specification",
+  "currentStage": "planning",
   "iteration": 1,
   "specId": "002-configurable-git-branching",
   "branch": "spec/002-configurable-git-branching",
   "description": "Add configurable git branching workflow support (gitflow, GitHub Flow, custom prefixes, --id flag)",
   "stages": {
     "specification": {
-      "status": "in_progress",
-      "iteration": 1
+      "status": "complete",
+      "iteration": 5
     },
     "clarification": {
-      "status": "pending"
+      "status": "complete",
+      "iteration": 4
     },
     "planning": {
       "status": "pending"
@@ -31,6 +32,7 @@
   "skillsUsed": {
     "specification": [],
     "clarification": [],
+
     "planning": [],
     "task_breakdown": [],
     "implementation": [],
