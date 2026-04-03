@@ -1,17 +1,22 @@
-# Gauge Review — Planning Iteration 1
-
 ## Findings
 
-1. **BLOCKING: Provider-surface parity for `specify`.** The plan updates only CLI/code paths but Steel-Kit's Claude/Gemini/Codex surfaces are generated from canonical command markdown in `src/command-installer.ts`. The current `specify` resource in `resources/commands/steel-specify.md` still hardcodes numeric IDs and `spec/` branches. Under the constitution, this feature needs an explicit implementation home and tests for those shared surfaces.
+### SPEC COVERAGE: Branch prefix validation is designed with the wrong primitive
+**Severity**: major  
+**Details**: The plan exposes only `validateBranchRef()` and `validateSpecIdComponent()`, and then says `steel init` will validate `branchPrefix` with `validateBranchRef()`. That does not match the spec. `branchPrefix` is not a full branch name and must allow values like `spec/` and `feature/` per spec.md:97, spec.md:112, and clarifications.md:21. A generic branch-name validator will typically reject trailing `/`, which would make the required default `spec/` invalid.  
+**Suggestion**: Split validation into at least `validateBranchPrefix()` and `validateBranchName()` or make the validator field-aware. The plan should also state explicitly how `resolveGitConfig()` verifies the composed ref `branchPrefix + specId`, because NFR-5 requires more than simple per-field validation.
 
-2. **BLOCKING: AC coverage overstated for `specify` wiring.** AC-6/7/8 are mapped to `initBranch()` integration tests only, but that does not verify FR-14/17/18: CLI option parsing, `cmdSpecify()` passing `customId`, `resolveGitConfig()` being called, and `state.branch` using the returned branch name. Need command-level tests, not just git-op tests.
+### TESTING STRATEGY: FR-7 and NFR-5 are only partially covered
+**Severity**: major  
+**Details**: The test plan covers `STEEL_GIT_BRANCH_PREFIX` and invalid `STEEL_GIT_WORKFLOW`, but not `STEEL_GIT_BASE_BRANCH` or `STEEL_GIT_DEVELOP_BRANCH`, even though both are required env mappings in spec.md:56. It also never calls out tests for invalid `developBranch`, despite NFR-5 requiring validation of both `baseBranch` and `developBranch` in spec.md:112. As written, the plan leaves part of the config cascade and part of the resolved schema effectively unverified.  
+**Suggestion**: Add explicit tests for `STEEL_GIT_BASE_BRANCH`, `STEEL_GIT_DEVELOP_BRANCH`, and invalid `developBranch` resolution. If `developBranch` is intentionally "stored but unused," say so in the plan and still test that it resolves and validates correctly.
 
-3. **BLOCKING: Cyclic dependency.** `src/git-config.ts` depends on `src/config.ts` for `SteelConfig`, while `src/config.ts` adds `git?: GitConfig` from `src/git-config.ts`. Bidirectional type dependency needs resolution.
+### IMPLEMENTATION PHASING: Phase 1 is described as "no behavioral changes" even though it changes runtime config behavior
+**Severity**: minor  
+**Details**: Phase 1 claims "no behavioral changes" but it includes adding `STEEL_GIT_*` env handling and config deep-merge. Those are real runtime behavior changes, even if they are backward-compatible. That wording weakens the gate because it understates risk.  
+**Suggestion**: Reframe Phase 1 as "isolated config-layer behavior changes with no changes to branch creation/recovery yet," and keep the gate focused on backward compatibility plus config-resolution correctness.
 
-4. **WARNING: Config cascade tests at wrong layer.** AC-14/15 assigned to `resolveGitConfig()` but env overrides are applied in `loadConfig()`. AC-27 needs clarity on whether `initConfig()` is refactored or bypassed for merge-preserving re-init.
+## Summary
 
-## Assessment
+The plan is mostly coherent and the decomposition is reasonable, especially around extracting `git-config` and `spec-id`. The blocking issue is that the validation design does not actually match the spec's branch-prefix semantics, and the test matrix misses required env/config cases around `baseBranch` and `developBranch`.
 
-Phasing is correct. Architecture mostly simple but needs cycle resolution. Biggest real risks missed: command-surface drift and re-init config clobbering.
-
-VERDICT: REVISE
+## VERDICT: REVISE
