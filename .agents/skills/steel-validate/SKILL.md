@@ -93,21 +93,26 @@ Validate the implementation against the specification using the Forge-Gauge loop
       ...
       ```
 
-   e. Save a copy to `specs/<specId>/artifacts/validation/iterN-forge.md`
-   f. Git commit: `forge(validation): iteration N output [iteration N]`
+   e. **Self-check the report before proceeding:**
+      1. Count the number of PASS, FAIL, and DEFERRED verdicts in the Results tables. Verify these counts match the Summary line exactly. If they don't match, fix the Summary before continuing.
+      2. For every cited line number (e.g., `file.ts:42`), grep the referenced source file to confirm the cited line actually contains what the report claims. If a line number is wrong, correct it or remove the citation.
+      If either check fails, fix the report in `specs/<specId>/validation.md` before proceeding.
+
+   f. Save a copy to `specs/<specId>/artifacts/validation/iterN-forge.md`
+   g. Git commit: `forge(validation): iteration N output [iteration N]`
 
    ### Gauge Phase — FACTUAL VERIFICATION
 
    The Gauge's job is NOT to rubber-stamp the report. It must independently verify that the Forge's claims are factually correct.
 
-   g. **Build the Gauge verification prompt** that includes ALL of the following:
+   h. **Build the Gauge verification prompt** that includes ALL of the following:
       - The full validation report from the Forge
       - The spec (`spec.md`) — so the Gauge can cross-check requirement mappings
       - The plan (`plan.md`) — so the Gauge can verify deviation claims
       - The verbatim test output from `specs/<specId>/artifacts/validation/iterN-test-output.txt`
       - The actual source files referenced by PASS claims (read them, don't summarize)
 
-   h. Call the Gauge LLM (per config) to verify. **IMPORTANT: Run the command from the project's working directory, NOT /tmp.**
+   i. Call the Gauge LLM (per config) to verify. **IMPORTANT: Run the command from the project's working directory, NOT /tmp.**
       - If gauge is `gemini`: run `gemini -p "<verification prompt>"` in the current project directory
       - If gauge is `codex`: run `codex exec "<verification prompt>"` in the current project directory
       - If gauge is `claude`: Switch to Gauge role and perform independent verification yourself. Be adversarial.
@@ -123,10 +128,10 @@ Validate the implementation against the specification using the Forge-Gauge loop
 
       End with exactly: `VERDICT: APPROVE` or `VERDICT: REVISE`
 
-   i. Save verification report to `specs/<specId>/artifacts/validation/iterN-gauge.md`
-   j. Git commit: `gauge(validation): iteration N review — <verdict> [iteration N]`
+   j. Save verification report to `specs/<specId>/artifacts/validation/iterN-gauge.md`
+   k. Git commit: `gauge(validation): iteration N review — <verdict> [iteration N]`
 
-   k. If **APPROVE**: break loop. If **REVISE**: the Forge must fix disputed claims — re-run tests, re-read code, correct the report. Do not just reword — reverify.
+   l. If **APPROVE**: break loop. If **REVISE**: the Forge must fix disputed claims — re-run tests, re-read code, correct the report. Do not just reword — reverify.
 
 4. **If any DEFERRED items exist**, warn the user before advancing:
 
