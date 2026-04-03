@@ -114,7 +114,7 @@ async function installCodexSkills(
   return commandFiles.length;
 }
 
-function renderGeminiCommandToml(filename: string, markdown: string): string {
+export function renderGeminiCommandToml(filename: string, markdown: string): string {
   const commandName = filename.replace(/\.md$/, '');
   const description = extractDescription(markdown, commandName);
   const prompt = adaptMarkdownForGemini(markdown);

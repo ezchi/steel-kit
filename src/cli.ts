@@ -16,6 +16,7 @@ import { cmdRunAll } from '../commands/run-all.js';
 import { cmdUpdate } from '../commands/update.js';
 import { cmdUpgrade } from '../commands/upgrade.js';
 import { cmdClean } from '../commands/clean.js';
+import { cmdDoctor } from '../commands/doctor.js';
 
 const program = new Command();
 
@@ -100,5 +101,11 @@ program
   .command('clean')
   .description('Remove artifacts and reset workflow state')
   .action(cmdClean);
+
+program
+  .command('doctor')
+  .description('Diagnose project setup, workflow state, and provider health')
+  .option('--json', 'Output diagnostics as JSON')
+  .action(cmdDoctor);
 
 program.parse();
