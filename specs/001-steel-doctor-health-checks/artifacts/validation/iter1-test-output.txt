@@ -1,0 +1,25 @@
+$ npm run build
+> @steel-kit/core@0.5.1 build
+> tsc
+
+$ npm test
+> @steel-kit/core@0.5.1 test
+> vitest
+
+ RUN  v3.2.4 /Users/ezchi/Projects/steel-kit
+
+ ✓ src/command-installer.test.ts (1 test) 1ms
+ ✓ src/doctor.test.ts (10 tests) 108ms
+
+ Test Files  2 passed (2)
+      Tests  11 passed (11)
+
+$ npm run lint
+> @steel-kit/core@0.5.1 lint
+> tsc --noEmit
+
+$ node dist/src/cli.js doctor
+Steel-Kit Doctor — all checks pass or warn, exit code 0
+
+$ node dist/src/cli.js doctor --json | python3 -c "..."
+status=warn pass=16 warn=4 fail=0 diags=20
