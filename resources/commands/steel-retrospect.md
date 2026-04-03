@@ -79,8 +79,9 @@ Review the entire workflow to extract learnings, memory candidates, and skill im
 
    ### Gauge Phase
    e. Call the Gauge LLM (per config) to review the retrospect report. **IMPORTANT: Run the command from the project's working directory, NOT /tmp.**
-      - If gauge is `gemini`: run `gemini -p "<review prompt>"` in the current project directory
-      - If gauge is `codex`: run `codex exec "<review prompt>"` in the current project directory
+      - Write the full review prompt to a file at `specs/<specId>/artifacts/retrospect/iterN-gauge-prompt.md`
+      - If gauge is `gemini`: run `gemini "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
+      - If gauge is `codex`: run `codex exec "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
       - If gauge is `claude`: Review critically yourself as the Gauge role.
 
       The Gauge MUST verify every claim against the cited evidence:

@@ -106,8 +106,9 @@ Validate the implementation against the specification using the Forge-Gauge loop
       - The actual source files referenced by PASS claims (read them, don't summarize)
 
    i. Call the Gauge LLM (per config) to verify. **IMPORTANT: Run the command from the project's working directory, NOT /tmp.**
-      - If gauge is `gemini`: run `gemini -p "<verification prompt>"` in the current project directory
-      - If gauge is `codex`: run `codex exec "<verification prompt>"` in the current project directory
+      - Write the full verification prompt to a file at `specs/<specId>/artifacts/validation/iterN-gauge-prompt.md`
+      - If gauge is `gemini`: run `gemini "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
+      - If gauge is `codex`: run `codex exec "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
       - If gauge is `claude`: Switch to Gauge role and perform independent verification yourself. Be adversarial.
 
       The Gauge MUST perform these checks:

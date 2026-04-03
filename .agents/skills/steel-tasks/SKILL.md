@@ -39,8 +39,9 @@ Break the implementation plan into ordered, actionable tasks using the Forge-Gau
 
    ### Gauge Phase
    e. Call the Gauge LLM (per config) to review the task breakdown. **IMPORTANT: Run the command from the project's working directory, NOT /tmp.**
-      - If gauge is `gemini`: run `gemini -p "<review prompt>"` in the current project directory
-      - If gauge is `codex`: run `codex exec "<review prompt>"` in the current project directory
+      - Write the full review prompt to a file at `specs/<specId>/artifacts/task_breakdown/iterN-gauge-prompt.md`
+      - If gauge is `gemini`: run `gemini "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
+      - If gauge is `codex`: run `codex exec "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
       - If gauge is `claude`: Review critically yourself as the Gauge role.
 
       Review criteria: task completeness, ordering, dependencies, granularity, constitution alignment. End with `VERDICT: APPROVE` or `VERDICT: REVISE`.

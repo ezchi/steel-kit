@@ -71,8 +71,9 @@ Implement all tasks using the Forge-Gauge loop. This is the stage where actual c
       - The test files and their content
 
    f. Call the Gauge LLM for code review. **IMPORTANT: Run the command from the project's working directory, NOT /tmp.**
-      - If gauge is `gemini`: run `gemini -p "<code review prompt>"` in the current project directory
-      - If gauge is `codex`: run `codex exec "<code review prompt>"` in the current project directory
+      - Write the full code review prompt to a file at `specs/<specId>/artifacts/implementation/taskN-iterM-gauge-prompt.md`
+      - If gauge is `gemini`: run `gemini "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
+      - If gauge is `codex`: run `codex exec "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
       - If gauge is `claude`: Switch to Gauge role and perform a thorough code review yourself. Be strict.
 
       The Gauge code review must check:

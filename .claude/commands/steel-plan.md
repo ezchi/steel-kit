@@ -33,8 +33,9 @@ Generate an implementation plan using the Forge-Gauge loop.
 
    ### Gauge Phase
    e. Call the Gauge LLM (per config) to review the plan. **IMPORTANT: Run the command from the project's working directory, NOT /tmp.**
-      - If gauge is `gemini`: run `gemini -p "<review prompt with plan content>"` in the current project directory
-      - If gauge is `codex`: run `codex exec "<review prompt with plan content>"` in the current project directory
+      - Write the full review prompt to a file at `specs/<specId>/artifacts/planning/iterN-gauge-prompt.md`
+      - If gauge is `gemini`: run `gemini "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
+      - If gauge is `codex`: run `codex exec "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
       - If gauge is `claude`: Review critically yourself as the Gauge role.
 
       Review criteria: spec coverage, architecture soundness, simplicity, risk assessment, testing strategy, alignment with constitution. End with `VERDICT: APPROVE` or `VERDICT: REVISE`.

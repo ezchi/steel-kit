@@ -42,8 +42,9 @@ Feature description: $ARGUMENTS
    ### Gauge Phase
    e. Read `.steel/config.json` to get the gauge provider.
    f. Call the Gauge LLM to review the spec. **IMPORTANT: Run the command from the project's working directory, NOT /tmp.**
-      - If gauge is `gemini`: run `gemini -p "<review prompt with spec content>"` in the current project directory
-      - If gauge is `codex`: run `codex exec "<review prompt with spec content>"` in the current project directory
+      - Write the full review prompt to a file at `specs/<specId>/artifacts/specification/iterN-gauge-prompt.md`
+      - If gauge is `gemini`: run `gemini "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
+      - If gauge is `codex`: run `codex exec "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
       - If gauge is `claude`: You ARE Claude, so review the spec yourself critically as the Gauge role — evaluate completeness, clarity, testability, consistency. Be strict.
 
       The Gauge review prompt must include these instructions:

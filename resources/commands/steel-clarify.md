@@ -42,8 +42,9 @@ Run clarification on the current specification using the Forge-Gauge loop.
 
    ### Gauge Phase
    g. Call the Gauge LLM (per config) to review. **IMPORTANT: Run the command from the project's working directory, NOT /tmp.**
-      - If gauge is `gemini`: run `gemini -p "<review prompt>"` in the current project directory
-      - If gauge is `codex`: run `codex exec "<review prompt>"` in the current project directory
+      - Write the full review prompt to a file at `specs/<specId>/artifacts/clarification/iterN-gauge-prompt.md`
+      - If gauge is `gemini`: run `gemini "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
+      - If gauge is `codex`: run `codex exec "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
       - If gauge is `claude`: Review critically yourself as the Gauge role.
 
       The Gauge must review BOTH the clarifications AND the updated spec.md:

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
+import { killActiveProcesses } from './process-tracker.js';
 import { cmdInit } from '../commands/init.js';
 import { cmdConstitution } from '../commands/constitution.js';
 import { cmdSpecify } from '../commands/specify.js';
@@ -107,5 +108,13 @@ program
   .description('Diagnose project setup, workflow state, and provider health')
   .option('--json', 'Output diagnostics as JSON')
   .action(cmdDoctor);
+
+// Kill only processes we spawned — never broad pkill
+for (const sig of ['SIGINT', 'SIGTERM'] as const) {
+  process.on(sig, () => {
+    killActiveProcesses(sig);
+    process.exit(1);
+  });
+}
 
 program.parse();

@@ -5,6 +5,8 @@ Run all remaining stages in the Steel-Kit workflow automatically.
 
 ## Steps
 
+0. Run `/clear` to clear the conversation context before starting this stage.
+
 1. Read `.steel/state.json` to determine the current stage.
 
 2. If `.steel/constitution.md` is still the placeholder template or missing, stop and tell the user to finish the constitution stage before any workflow stage can run.
