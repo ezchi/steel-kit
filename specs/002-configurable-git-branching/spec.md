@@ -143,8 +143,10 @@ This specification aligns with the project constitution:
 - AC-27: `steel init` on an existing project with `forge: codex, gauge: codex` config, when re-run with new git values, preserves `forge`, `gauge`, `maxIterations`, `autoCommit`, `specsDir` and only adds/updates the `git` key.
 - AC-28: `steel init` with user entering `baseBranch: "main~1"` re-prompts with an error about `~` before accepting a corrected value.
 - AC-29: `npm run build` compiles without errors; `npm test` passes; `npm run lint` type-checks.
-- AC-30: `generateSpecId` with `--id PROJ-21` and description `"add auth"` when `specs/PROJ-21-add-auth/` already exists → fails with error `"Spec directory 'specs/PROJ-21-add-auth' already exists."` No branch or file creation occurs.
-- AC-31: `generateSpecId` with `--id PROJ-21` and description `"Add Auth!!!"` produces specId `PROJ-21-add-auth` (slugification: lowercase, strip non-alphanumeric, collapse whitespace to hyphens).
+- AC-30: `generateSpecId` with `--id PROJ-21` and description `"add auth"` when `specs/PROJ-21-add-auth/` already exists → fails with error `"Spec directory 'specs/PROJ-21-add-auth' already exists. Use a different --id or remove the existing spec."` No branch or file creation occurs.
+- AC-31: `generateSpecId` with `--id PROJ-21` and description `"Add Auth!!!"` produces specId `PROJ-21-add-auth` (lowercase, strip `!`, collapse whitespace).
+- AC-32: `generateSpecId` with description `"  spaced  out  "` produces a semantic name with no leading/trailing hyphens (trim before collapsing whitespace).
+- AC-33: `generateSpecId` with description longer than 40 characters (e.g. `"this is a very long feature description that exceeds the limit"`) produces a semantic name truncated to exactly 40 characters.
 
 ## Out of Scope
 
@@ -166,3 +168,6 @@ None at this time.
 - [Clarification iter2] FR-15b: Codified slugification algorithm for `<semantic-name>` derivation (was implicit, now normative).
 - [Clarification iter2] AC-30: Added acceptance criterion for FR-15a collision detection.
 - [Clarification iter2] AC-31: Added acceptance criterion for slugification behavior.
+- [Clarification iter3] AC-30: Updated error message to include full remediation tail per FR-15a.
+- [Clarification iter3] AC-32: Added acceptance criterion for leading/trailing whitespace trimming.
+- [Clarification iter3] AC-33: Added acceptance criterion for 40-character truncation.
