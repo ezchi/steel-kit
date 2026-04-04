@@ -163,16 +163,21 @@ describe('cmdClean scoped tag cleanup', () => {
         retrospect: { status: 'pending' },
       },
     }));
+    // specs-dir has 003-test (highest-numbered) — resolveSpecId returns this
+    mkdirSync(resolve(tempDir, 'specs', '001-first'), { recursive: true });
     mkdirSync(resolve(tempDir, 'specs', '003-test'), { recursive: true });
 
     initGitRepo(tempDir); // default branch, no spec/ prefix
     execSync('git tag steel/003-test/specification-complete', { cwd: tempDir });
+    execSync('git tag steel/001-first/specification-complete', { cwd: tempDir });
 
     await cmdClean();
 
     const tags = getTags(tempDir);
-    // Resolved specId from specs-dir → scoped deletion
+    // Resolved specId=003-test from specs-dir → scoped deletion
     expect(tags).not.toContain('steel/003-test/specification-complete');
+    // Other spec's tags should survive
+    expect(tags).toContain('steel/001-first/specification-complete');
   });
 
   it('ignores legacy flat tags during scoped cleanup (AC-9)', async () => {
@@ -203,5 +208,35 @@ describe('cmdClean scoped tag cleanup', () => {
     // Legacy tag should NOT be deleted (pattern steel/003-test/*-complete doesn't match it)
     expect(tags).toContain('steel/specification-complete');
     expect(tags).not.toContain('steel/003-test/specification-complete');
+  });
+
+  it('falls back to global deletion with warning when specId unresolvable', async () => {
+    writeFile(tempDir, '.steel/config.json', makeConfig());
+    writeFile(tempDir, '.steel/.gitignore', 'state.json');
+    writeFile(tempDir, '.steel/state.json', JSON.stringify({
+      currentStage: 'specification',
+      iteration: 1,
+      stages: {
+        specification: { status: 'in_progress' },
+        clarification: { status: 'pending' },
+        planning: { status: 'pending' },
+        task_breakdown: { status: 'pending' },
+        implementation: { status: 'pending' },
+        validation: { status: 'pending' },
+        retrospect: { status: 'pending' },
+      },
+    }));
+    // No specId in state, no matching branch, no specs dir
+
+    initGitRepo(tempDir);
+    execSync('git tag steel/003-test/specification-complete', { cwd: tempDir });
+    execSync('git tag steel/001-other/specification-complete', { cwd: tempDir });
+
+    await cmdClean();
+
+    const tags = getTags(tempDir);
+    // Global fallback steel/*/*-complete deletes ALL namespaced tags
+    expect(tags).not.toContain('steel/003-test/specification-complete');
+    expect(tags).not.toContain('steel/001-other/specification-complete');
   });
 });

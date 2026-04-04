@@ -292,15 +292,15 @@ describe('runDoctor', () => {
       writeFile(tempDir, '.steel/config.json', '{"forge":{"provider":"codex"},"gauge":{"provider":"codex"},"maxIterations":5,"autoCommit":true,"specsDir":"specs"}');
       writeFile(tempDir, '.steel/constitution.md', '# Real\nContent');
       writeFile(tempDir, '.steel/.gitignore', 'state.json');
+      // Create specs dir for branch resolution but NO spec files — only tags prove recoverability
       mkdirSync(resolve(tempDir, 'specs', '003-test'), { recursive: true });
-      writeFile(tempDir, 'specs/003-test/spec.md', '# Spec');
 
       initGitRepo(tempDir);
       const { execSync } = require('node:child_process');
       execSync('git checkout -b spec/003-test', { cwd: tempDir, stdio: 'ignore' });
       execSync('git tag steel/003-test/specification-complete', { cwd: tempDir, stdio: 'ignore' });
 
-      // No state.json — should detect recoverable state
+      // No state.json, no spec files — recovery detection must come from tags alone
       const result = await runDoctor(tempDir);
       const diag = findDiag(result, 'state-recovery');
       expect(diag).toBeDefined();
@@ -320,22 +320,19 @@ describe('runDoctor', () => {
       }));
       writeFile(tempDir, '.steel/constitution.md', '# Real\nContent');
       writeFile(tempDir, '.steel/.gitignore', 'state.json');
-      mkdirSync(resolve(tempDir, 'specs', '003-test'), { recursive: true });
 
       const { execSync } = require('node:child_process');
       execSync('git init', { cwd: tempDir, stdio: 'ignore' });
       execSync('git add .', { cwd: tempDir, stdio: 'ignore' });
       execSync('git commit -m "init"', { cwd: tempDir, stdio: 'ignore' });
       execSync('git checkout -b feature/003-test', { cwd: tempDir, stdio: 'ignore' });
-      // Create tag for THIS spec — should be found with scoped pattern
-      execSync('git tag steel/003-test/specification-complete', { cwd: tempDir, stdio: 'ignore' });
-      // Create tag for DIFFERENT spec — should NOT be found with scoped pattern
+      // ONLY create tag for a DIFFERENT spec — scoped pattern steel/003-test/*-complete won't match
       execSync('git tag steel/001-other/specification-complete', { cwd: tempDir, stdio: 'ignore' });
 
       const result = await runDoctor(tempDir);
+      // Scoped to 003-test but only 001-other tag exists → no recovery detected
       const diag = findDiag(result, 'state-recovery');
-      expect(diag).toBeDefined();
-      expect(diag!.status).toBe('warn');
+      expect(diag).toBeUndefined();
     });
 
     it('falls back to broad pattern with no resolvable specId (AC-12)', async () => {
