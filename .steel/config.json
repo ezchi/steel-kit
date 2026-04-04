@@ -1,0 +1,15 @@
+{
+  "forge": {
+    "provider": "claude"
+  },
+  "gauge": {
+    "provider": "codex"
+  },
+  "maxIterations": 5,
+  "autoCommit": true,
+  "specsDir": "specs",
+  "git": {
+    "baseBranch": "develop",
+    "branchPrefix": "feature/"
+  }
+}
