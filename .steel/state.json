@@ -1,9 +1,9 @@
 {
   "currentStage": "specification",
   "iteration": 1,
-  "specId": "004-commit-only-constitution",
-  "branch": "spec/004-commit-only-constitution",
-  "description": "Only the constitution.md under .steel/ directory should be committed, as different contributors may use different configs",
+  "specId": "005-drop-gemini-commands",
+  "branch": "spec/005-drop-gemini-commands",
+  "description": "Drop .gemini/commands/ directory — let Gemini use .agents/skills/ to eliminate duplicate command conflicts",
   "stages": {
     "specification": {
       "status": "in_progress",
