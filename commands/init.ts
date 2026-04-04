@@ -1,7 +1,9 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { initConfig, getSteelDir, getConfigPath } from '../src/config.js';
+import { input } from '@inquirer/prompts';
+import { type SteelConfig, initConfig, getSteelDir, getConfigPath } from '../src/config.js';
+import { validateBranchName, validateBranchPrefix } from '../src/git-config.js';
 import { installProjectCommands } from '../src/command-installer.js';
 import { commitStep } from '../src/git-ops.js';
 import {
@@ -57,9 +59,15 @@ tasks.json
 
   // Interactive config setup
   const configPath = getConfigPath(projectRoot);
-  const config = await initConfig(projectRoot, {
-    skipWrite: existsSync(configPath) && !(await shouldWriteFile(configPath)),
-  });
+
+  // Use deferWrite to get provider selections without writing yet
+  const baseConfig = await initConfig(projectRoot, { deferWrite: true });
+
+  // Prompt for git config
+  const gitSettings = await promptGitConfig();
+
+  // Merge and write config — preserving existing keys on re-init
+  const config = await mergeAndWriteConfig(configPath, baseConfig, gitSettings);
 
   // Verify providers are available
   log.info('Checking LLM provider availability...');
@@ -125,6 +133,89 @@ async function shouldWriteFile(filePath: string): Promise<boolean> {
     : filePath;
   log.warn(`${relPath} already exists.`);
   return confirm(`Overwrite ${relPath}?`);
+}
+
+interface GitSettings {
+  baseBranch: string;
+  branchPrefix: string;
+}
+
+async function promptGitConfig(): Promise<GitSettings> {
+  let baseBranch: string;
+  for (;;) {
+    baseBranch = await input({
+      message: 'Base branch for new feature branches:',
+      default: 'main',
+    });
+    try {
+      validateBranchName(baseBranch, 'baseBranch');
+      break;
+    } catch (err) {
+      log.warn((err as Error).message + ' — please try again.');
+    }
+  }
+
+  let branchPrefix: string;
+  for (;;) {
+    branchPrefix = await input({
+      message: 'Branch prefix for spec branches:',
+      default: 'spec/',
+    });
+    try {
+      validateBranchPrefix(branchPrefix);
+      break;
+    } catch (err) {
+      log.warn((err as Error).message + ' — please try again.');
+    }
+  }
+
+  return { baseBranch, branchPrefix };
+}
+
+async function mergeAndWriteConfig(
+  configPath: string,
+  baseConfig: SteelConfig,
+  gitSettings: GitSettings,
+): Promise<SteelConfig> {
+  // Start from existing config on re-init to preserve unknown keys
+  let raw: Record<string, any> = {};
+  if (existsSync(configPath)) {
+    try {
+      raw = JSON.parse(await readFile(configPath, 'utf-8'));
+    } catch {
+      // Corrupt file — start fresh
+    }
+  }
+
+  // Apply provider selections from interactive prompts
+  raw.forge = baseConfig.forge;
+  raw.gauge = baseConfig.gauge;
+  raw.maxIterations = raw.maxIterations ?? baseConfig.maxIterations;
+  raw.autoCommit = raw.autoCommit ?? baseConfig.autoCommit;
+  raw.specsDir = raw.specsDir ?? baseConfig.specsDir;
+
+  // Apply git settings
+  raw.git = {
+    ...(raw.git ?? {}),
+    baseBranch: gitSettings.baseBranch,
+    branchPrefix: gitSettings.branchPrefix,
+  };
+
+  // Write the merged config
+  const steelDir = resolve(configPath, '..');
+  await mkdir(steelDir, { recursive: true });
+  await writeFile(configPath, JSON.stringify(raw, null, 2));
+  log.success('Config saved to .steel/config.json');
+
+  // Return a typed config for downstream use
+  return {
+    forge: raw.forge,
+    gauge: raw.gauge,
+    maxIterations: raw.maxIterations ?? 5,
+    autoCommit: raw.autoCommit ?? true,
+    specsDir: raw.specsDir ?? 'specs',
+    git: raw.git,
+  };
 }
 
 async function installSlashCommands(projectRoot: string): Promise<void> {
