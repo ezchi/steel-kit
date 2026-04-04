@@ -98,8 +98,7 @@ After selection, the tool will automatically:
 - Create `.steel/` directory with `config.json`, `constitution.md`, and `.gitignore`
 - Install workflow commands for:
   - Claude Code in `.claude/commands/`
-  - Gemini CLI in `.gemini/commands/`
-  - Codex CLI skills in `.agents/skills/`
+  - Agent skills in `.agents/skills/` (shared by Gemini CLI and Codex)
 - Auto-commit the initialization to git
 
 No LLM calls are made during init — it completes instantly.
@@ -173,8 +172,7 @@ steel update
 
 `steel update` installs or refreshes:
 - Claude Code commands in `.claude/commands/`
-- Gemini CLI commands in `.gemini/commands/`
-- Codex skills in `.agents/skills/`
+- Agent skills in `.agents/skills/` (shared by Gemini CLI and Codex)
 
 ## Codex CLI Notes
 
