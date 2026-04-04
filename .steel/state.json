@@ -1,32 +1,46 @@
 {
-  "currentStage": "specification",
+  "currentStage": "retrospect",
   "iteration": 1,
   "specId": "005-drop-gemini-commands",
   "branch": "spec/005-drop-gemini-commands",
   "description": "Drop .gemini/commands/ directory — let Gemini use .agents/skills/ to eliminate duplicate command conflicts",
   "stages": {
     "specification": {
-      "status": "in_progress",
-      "iteration": 1
+      "status": "complete",
+      "iteration": 4
     },
     "clarification": {
-      "status": "pending"
+      "status": "complete",
+      "iteration": 2
     },
     "planning": {
-      "status": "pending"
+      "status": "complete",
+      "iteration": 3
     },
     "task_breakdown": {
-      "status": "pending"
+      "status": "complete",
+      "iteration": 5
     },
     "implementation": {
-      "status": "pending"
+      "status": "complete",
+      "iteration": 1
     },
     "validation": {
-      "status": "pending"
+      "status": "complete",
+      "iteration": 3
     },
     "retrospect": {
-      "status": "pending"
+      "status": "complete",
+      "iteration": 1
     }
   },
-  "skillsUsed": {}
+  "skillsUsed": {
+    "specification": [],
+    "clarification": [],
+    "planning": [],
+    "task_breakdown": [],
+    "implementation": [],
+    "validation": [],
+    "retrospect": []
+  }
 }

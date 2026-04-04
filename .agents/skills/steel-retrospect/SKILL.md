@@ -5,7 +5,7 @@ description: "Steel-Kit workflow skill: Review the entire workflow to extract le
 
 # steel-retrospect
 
-Use this skill when the user invokes `$steel-retrospect` or asks to run the corresponding Steel-Kit workflow step in Codex.
+Use this skill when the user invokes `/steel-retrospect` or asks to run the corresponding Steel-Kit workflow step.
 
 Review the entire workflow to extract learnings, memory candidates, and skill improvements using the Forge-Gauge loop.
 

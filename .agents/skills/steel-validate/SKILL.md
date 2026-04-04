@@ -5,7 +5,7 @@ description: "Steel-Kit workflow skill: Validate the implementation against the 
 
 # steel-validate
 
-Use this skill when the user invokes `$steel-validate` or asks to run the corresponding Steel-Kit workflow step in Codex.
+Use this skill when the user invokes `/steel-validate` or asks to run the corresponding Steel-Kit workflow step.
 
 Validate the implementation against the specification using the Forge-Gauge loop.
 
@@ -152,5 +152,5 @@ Validate the implementation against the specification using the Forge-Gauge loop
 
 6. Auto-advance to `retrospect` stage. **No human approval needed.** Update `.steel/state.json`, tag `steel/<specId>/validation-complete`.
 
-7. Tell the user: "Validation complete. Run `$steel-retrospect` to review the workflow."
+7. Tell the user: "Validation complete. Run `/steel-retrospect` to review the workflow."
 

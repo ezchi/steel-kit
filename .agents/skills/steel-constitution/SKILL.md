@@ -5,7 +5,7 @@ description: "Steel-Kit workflow skill: Generate a project constitution by analy
 
 # steel-constitution
 
-Use this skill when the user invokes `$steel-constitution` or asks to run the corresponding Steel-Kit workflow step in Codex.
+Use this skill when the user invokes `/steel-constitution` or asks to run the corresponding Steel-Kit workflow step.
 
 Generate a project constitution by analyzing the current codebase.
 
@@ -13,7 +13,7 @@ User prompt (optional): the user-provided input
 
 ## Steps
 
-1. Read `.steel/config.json` to confirm project is initialized. If not, tell user to run `$steel-init` first.
+1. Read `.steel/config.json` to confirm project is initialized. If not, tell user to run `/steel-init` first.
 
 2. Read the existing `.steel/constitution.md`. If it contains real content (not just placeholder `<!-- TODO -->` comments), ask the user if they want to overwrite it.
 

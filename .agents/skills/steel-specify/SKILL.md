@@ -5,14 +5,14 @@ description: "Steel-Kit workflow skill: Create a feature specification using the
 
 # steel-specify
 
-Use this skill when the user invokes `$steel-specify` or asks to run the corresponding Steel-Kit workflow step in Codex.
+Use this skill when the user invokes `/steel-specify` or asks to run the corresponding Steel-Kit workflow step.
 
 Create a feature specification using the Forge-Gauge dual-agent loop.
 
 Feature description: the user-provided input
 
 ## Prerequisites
-- `.steel/` must exist (run `$steel-init` first)
+- `.steel/` must exist (run `/steel-init` first)
 - `.steel/constitution.md` must contain a real project constitution, not the placeholder template
 - `.steel/state.json` currentStage must be `specification`
 

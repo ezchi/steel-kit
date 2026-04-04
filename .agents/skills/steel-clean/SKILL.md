@@ -5,7 +5,7 @@ description: "Steel-Kit workflow skill: Remove the artifacts of the current work
 
 # steel-clean
 
-Use this skill when the user invokes `$steel-clean` or asks to run the corresponding Steel-Kit workflow step in Codex.
+Use this skill when the user invokes `/steel-clean` or asks to run the corresponding Steel-Kit workflow step.
 
 Remove the artifacts of the current workflow and reset state so you can start fresh.
 
@@ -33,5 +33,5 @@ Remove the artifacts of the current workflow and reset state so you can start fr
 
 6. Git commit: `steel(clean): remove artifacts for <specId>`
 
-7. Tell the user: "Workflow reset. Run `$steel-specify` to start a new feature."
+7. Tell the user: "Workflow reset. Run `/steel-specify` to start a new feature."
 

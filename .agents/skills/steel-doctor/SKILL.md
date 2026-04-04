@@ -5,7 +5,7 @@ description: "Steel-Kit workflow skill: Diagnose project setup, workflow state, 
 
 # steel-doctor
 
-Use this skill when the user invokes `$steel-doctor` or asks to run the corresponding Steel-Kit workflow step in Codex.
+Use this skill when the user invokes `/steel-doctor` or asks to run the corresponding Steel-Kit workflow step.
 
 Diagnose project setup, workflow state, and provider health.
 

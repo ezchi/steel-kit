@@ -5,13 +5,13 @@ description: "Steel-Kit workflow skill: Show the current Steel-Kit workflow stat
 
 # steel-status
 
-Use this skill when the user invokes `$steel-status` or asks to run the corresponding Steel-Kit workflow step in Codex.
+Use this skill when the user invokes `/steel-status` or asks to run the corresponding Steel-Kit workflow step.
 
 Show the current Steel-Kit workflow status.
 
 ## Steps
 
-1. Check if `.steel/` directory exists. If not, say "Project not initialized. Run `$steel-init`."
+1. Check if `.steel/` directory exists. If not, say "Project not initialized. Run `/steel-init`."
 
 2. Read `.steel/state.json`.
 

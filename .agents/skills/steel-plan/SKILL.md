@@ -5,7 +5,7 @@ description: "Steel-Kit workflow skill: Generate an implementation plan using th
 
 # steel-plan
 
-Use this skill when the user invokes `$steel-plan` or asks to run the corresponding Steel-Kit workflow step in Codex.
+Use this skill when the user invokes `/steel-plan` or asks to run the corresponding Steel-Kit workflow step.
 
 Generate an implementation plan using the Forge-Gauge loop.
 
@@ -60,5 +60,5 @@ Generate an implementation plan using the Forge-Gauge loop.
 
 6. **Track skills used**: Update `.steel/state.json` field `skillsUsed.planning` with an array of skill names you invoked during this stage. If no skills were used, set it to `[]`.
 
-7. Tell the user: "Plan complete. Run `$steel-tasks` to break down tasks."
+7. Tell the user: "Plan complete. Run `/steel-tasks` to break down tasks."
 

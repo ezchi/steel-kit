@@ -5,7 +5,7 @@ description: "Steel-Kit workflow skill: Implement all tasks using the Forge-Gaug
 
 # steel-implement
 
-Use this skill when the user invokes `$steel-implement` or asks to run the corresponding Steel-Kit workflow step in Codex.
+Use this skill when the user invokes `/steel-implement` or asks to run the corresponding Steel-Kit workflow step.
 
 Implement all tasks using the Forge-Gauge loop. This is the stage where actual code gets written.
 
@@ -113,5 +113,5 @@ Implement all tasks using the Forge-Gauge loop. This is the stage where actual c
 
 6. **Track skills used**: Update `.steel/state.json` field `skillsUsed.implementation` with an array of ALL skill names you invoked during this stage (across all tasks). For example: `["systemverilog-core", "sv-gen", "cocotb-verilator-tests", "verilator-cmake"]`. If no skills were used, set it to `[]`.
 
-7. Tell the user: "Implementation complete. Run `$steel-validate` to verify."
+7. Tell the user: "Implementation complete. Run `/steel-validate` to verify."
 

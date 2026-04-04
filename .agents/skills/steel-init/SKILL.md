@@ -5,7 +5,7 @@ description: "Steel-Kit workflow skill: Initialize Steel-Kit in the current proj
 
 # steel-init
 
-Use this skill when the user invokes `$steel-init` or asks to run the corresponding Steel-Kit workflow step in Codex.
+Use this skill when the user invokes `/steel-init` or asks to run the corresponding Steel-Kit workflow step.
 
 Initialize Steel-Kit in the current project.
 
@@ -18,8 +18,7 @@ Initialize Steel-Kit in the current project.
 3. Explain what was created:
    - `.steel/` workflow state and configuration
    - Claude Code commands in `.claude/commands/`
-   - Gemini CLI commands in `.gemini/commands/`
-   - Codex skills in `.agents/skills/`
+   - Agent skills in `.agents/skills/` (shared by Gemini CLI and Codex)
 
-4. Tell the user the next step is `$steel-constitution` in Codex, `$steel-constitution` in Claude Code, or `$steel-constitution` in Gemini CLI.
+4. Tell the user the next step is `/steel-constitution`.
 
