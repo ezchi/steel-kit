@@ -163,8 +163,10 @@ async function recoverState(
     }
   }
 
-  // 2. Check git tags to determine completed stages
-  const completedStages = await getCompletedStagesFromTags(projectRoot);
+  // 2. Check git tags to determine completed stages (scoped by specId)
+  const completedStages = state.specId
+    ? await getCompletedStagesFromTags(projectRoot, state.specId)
+    : new Set<string>();
 
   // 3. Check committed spec files to infer progress
   const specFiles = state.specId
@@ -206,8 +208,8 @@ async function recoverState(
   return state;
 }
 
-async function getCompletedStagesFromTags(projectRoot: string): Promise<Set<string>> {
-  const result = await execa('git', ['tag', '-l', 'steel/*-complete'], {
+async function getCompletedStagesFromTags(projectRoot: string, specId: string): Promise<Set<string>> {
+  const result = await execa('git', ['tag', '-l', `steel/${specId}/*-complete`], {
     cwd: projectRoot,
     reject: false,
     stdin: 'ignore',
@@ -215,8 +217,8 @@ async function getCompletedStagesFromTags(projectRoot: string): Promise<Set<stri
   const tags = result.stdout.trim().split('\n').filter(Boolean);
   const stages = new Set<string>();
   for (const tag of tags) {
-    // e.g., "steel/specification-complete" → "specification"
-    const match = tag.match(/^steel\/(.+)-complete$/);
+    // e.g., "steel/003-foo/specification-complete" → "specification"
+    const match = tag.match(/^steel\/[^/]+\/(.+)-complete$/);
     if (match) stages.add(match[1]);
   }
   return stages;
@@ -278,7 +280,7 @@ export async function advanceStage(
     }
   }
 
-  await tagStage(state.currentStage, projectRoot);
+  await tagStage(state.specId ?? 'unknown', state.currentStage, projectRoot);
 
   // Advance
   state.stages[state.currentStage].status = 'complete';

@@ -5,6 +5,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { getSteelDir, getSpecsDir, getSpecDir, loadConfig } from './config.js';
 import type { SteelConfig } from './config.js';
+import { resolveSpecId } from './git-config.js';
 import type { WorkflowState, StageName } from './workflow.js';
 import { isPlaceholderConstitution } from './utils.js';
 import {
@@ -420,7 +421,10 @@ async function checkStateRecovery(
   const statePath = resolve(getSteelDir(projectRoot), 'state.json');
   if (existsSync(statePath)) return []; // State exists, recovery not needed
 
-  const tags = await safeListTags(projectRoot, 'steel/*-complete');
+  // Resolve specId for scoped tag check (FR-6)
+  const specId = config ? await resolveSpecId(projectRoot, config) : null;
+  const tagPattern = specId ? `steel/${specId}/*-complete` : 'steel/*/*-complete';
+  const tags = await safeListTags(projectRoot, tagPattern);
   let hasSpecFiles = false;
 
   if (config) {

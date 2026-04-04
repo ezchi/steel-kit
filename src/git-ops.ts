@@ -90,10 +90,11 @@ export async function commitStep(
 }
 
 export async function tagStage(
+  specId: string,
   stage: string,
   projectRoot: string,
 ): Promise<void> {
-  const tagName = `steel/${stage}-complete`;
+  const tagName = `steel/${specId}/${stage}-complete`;
   await execa('git', ['tag', '-f', tagName], {
     cwd: projectRoot,
     stdin: 'ignore',

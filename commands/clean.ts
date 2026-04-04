@@ -3,6 +3,7 @@ import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { execa } from 'execa';
 import { getSpecDir, getSteelDir, loadConfig } from '../src/config.js';
+import { resolveSpecId } from '../src/git-config.js';
 import { loadState, createInitialState, saveState } from '../src/workflow.js';
 import { commitStep } from '../src/git-ops.js';
 import { log, confirm, die } from '../src/utils.js';
@@ -17,7 +18,12 @@ export async function cmdClean(): Promise<void> {
 
   const state = await loadState(projectRoot);
   const config = await loadConfig(projectRoot);
-  const specId = state.specId;
+
+  // Resolve specId: state first, then branch/specs-dir fallback (FR-5)
+  let specId = state.specId ?? null;
+  if (!specId) {
+    specId = await resolveSpecId(projectRoot, config);
+  }
 
   // Show what will be removed
   log.info('The following will be removed:');
@@ -26,7 +32,11 @@ export async function cmdClean(): Promise<void> {
   if (specId) {
     log.info(`  - ${config.specsDir}/${specId}/artifacts/ (iteration artifacts only)`);
   }
-  log.info('  - All steel/*-complete git tags (local only)');
+  if (specId) {
+    log.info(`  - Git tags matching steel/${specId}/*-complete (local only)`);
+  } else {
+    log.info('  - All steel/*/*-complete git tags (local only)');
+  }
 
   const approved = await confirm(
     specId
@@ -53,8 +63,12 @@ export async function cmdClean(): Promise<void> {
   if (existsSync(stateFile)) await rm(stateFile);
   if (existsSync(tasksFile)) await rm(tasksFile);
 
-  // Remove steel/*-complete tags (local only)
-  const tagResult = await execa('git', ['tag', '-l', 'steel/*-complete'], {
+  // Remove namespaced tags scoped to specId (FR-5)
+  const tagPattern = specId ? `steel/${specId}/*-complete` : 'steel/*/*-complete';
+  if (!specId) {
+    log.warn('Cannot determine active spec — removing all namespaced tags');
+  }
+  const tagResult = await execa('git', ['tag', '-l', tagPattern], {
     cwd: projectRoot,
     reject: false,
     stdin: 'ignore',
@@ -68,7 +82,7 @@ export async function cmdClean(): Promise<void> {
     });
   }
   if (tags.length > 0) {
-    log.info(`Removed ${tags.length} git tag(s)`);
+    log.info(`Removed ${tags.length} git tag(s)${specId ? ` for ${specId}` : ''}`);
   }
 
   const freshState = createInitialState();
