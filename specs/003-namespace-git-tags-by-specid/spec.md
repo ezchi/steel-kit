@@ -52,12 +52,18 @@ This feature changes the tag format to `steel/<specId>/<stage>-complete` so each
 Existing `steel/<stage>-complete` tags (old format) are NOT automatically migrated. Recovery code and doctor MUST NOT fail when legacy flat tags are present alongside new namespaced tags. Legacy tags are simply ignored by the new glob patterns (`steel/<specId>/*-complete` does not match `steel/<stage>-complete` because the old format has no second `/` separator).
 
 ### FR-8: Update canonical workflow-command files
-The following files in `resources/commands/` reference the old flat tag format and MUST be updated to reflect the new `steel/<specId>/<stage>-complete` format:
-- `resources/commands/steel-specify.md` — tag reference in step 7 (approval gate)
-- `resources/commands/steel-clean.md` — tag cleanup instructions
-- Any other `resources/commands/steel-*.md` files that reference `steel/<stage>-complete` tags
+All 8 canonical command files in `resources/commands/` that reference the old flat tag format MUST be updated to `steel/<specId>/<stage>-complete`:
+- `steel-specify.md:70` — `tag 'steel/<specId>/specification-complete'`
+- `steel-clarify.md:70` — `tag 'steel/<specId>/clarification-complete'`
+- `steel-plan.md:50` — `tag 'steel/<specId>/planning-complete'`
+- `steel-tasks.md:52` — `tag 'steel/<specId>/task_breakdown-complete'`
+- `steel-implement.md:103` — `tag 'steel/<specId>/implementation-complete'`
+- `steel-validate.md:144` — `tag 'steel/<specId>/validation-complete'`
+- `steel-retrospect.md:108` — `tag 'steel/<specId>/retrospect-complete'`
+- `steel-retrospect.md:22` — `git log --oneline steel/<specId>/specification-complete..HEAD` (rev range — specId from state.json at runtime)
+- `steel-clean.md:14, 22` — tag listing and cleanup patterns
 
-After updating canonical sources, regenerate or synchronize downstream provider artifacts (`.claude/commands/`, `.gemini/commands/`, `.agents/skills/`) to maintain provider parity per constitution principle 3.
+After updating canonical sources, run `steel update` to synchronize downstream provider artifacts (`.claude/commands/`, `.gemini/commands/`, `.agents/skills/`).
 
 ### FR-9: Update README.md
 `README.md` documents the tag format. Update all references from `steel/<stage>-complete` to `steel/<specId>/<stage>-complete`.
@@ -98,3 +104,7 @@ Legacy tags from previous specs remain untouched. The system does not break on r
 ## Open Questions
 
 None. The feature is well-scoped and all affected code paths are identified.
+
+## Changelog
+
+- [Clarification iter1] FR-8: Expanded from 2 named files + catch-all to all 8 canonical command files with exact line references. Added `steel-retrospect.md` git-log range as special case requiring runtime specId interpolation. Changed sync mechanism from generic "regenerate or synchronize" to specific `steel update` command.
