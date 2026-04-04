@@ -115,10 +115,10 @@ Spec-file scanning remains broad (deliberate divergence documented in FR-6).
 
 ### 5. Extract shared specId resolution helper
 
-FR-5 and FR-6 both need the same branch-detection + specs-dir fallback logic that `recoverState()` already has (lines 153-173). To avoid triplication, extract a shared helper:
+FR-5 and FR-6 both need the same branch-detection + specs-dir fallback logic that `recoverState()` already has (lines 153-173). To avoid triplication, extract a shared helper in `src/git-config.ts` (the existing module for git configuration concerns — keeps it separate from the workflow engine):
 
 ```typescript
-// src/workflow.ts (new export)
+// src/git-config.ts (new export)
 export async function resolveSpecId(
   projectRoot: string,
   config: SteelConfig,
@@ -141,7 +141,7 @@ export async function resolveSpecId(
 }
 ```
 
-Then `recoverState()`, `commands/clean.ts`, and `src/doctor.ts` all call `resolveSpecId()`.
+Then `recoverState()`, `commands/clean.ts`, and `src/doctor.ts` all import `resolveSpecId()` from `src/git-config.ts` — avoiding coupling to the workflow engine.
 
 ### 6. Canonical command files (FR-8)
 
@@ -198,13 +198,15 @@ No new external dependencies. Uses existing `execa`, `node:fs`, `node:path`.
 ### Phase 3: Tests
 9. Update existing tests in `src/workflow.test.ts` for new function signatures
 10. Update existing tests in `src/doctor.test.ts` for new tag patterns
-11. Add test: tag creation produces `steel/<specId>/<stage>-complete`
-12. Add test: recovery with known specId finds namespaced tags
-13. Add test: recovery with null specId skips tag-based recovery
-14. Add test: clean with known specId only deletes scoped tags
-15. Add test: clean with null specId falls back to `steel/*/*-complete`
-16. Add test: legacy flat tags are ignored by new patterns
-17. Add test: doctor detects namespaced tags as recoverable
+11. Add test: tag creation produces `steel/<specId>/<stage>-complete` (AC-1)
+12. Add test: recovery with known specId finds namespaced tags (AC-4)
+13. Add test: recovery with null specId skips tag-based recovery (AC-5)
+14. Add test: clean with known specId only deletes scoped tags, other spec's tags remain (AC-2, AC-3)
+15. Add test: clean with null specId (state.json exists but specId null) resolves from branch fallback before global deletion (AC-13)
+16. Add test: legacy flat tags coexist with namespaced tags — recovery, doctor, clean all ignore legacy (AC-9)
+17. Add test: doctor with branch-derived specId checks `steel/<specId>/*-complete` tags, branch takes precedence over directory (AC-11)
+18. Add test: doctor with no resolvable specId falls back to `steel/*/*-complete` and reports recoverable (AC-12)
+19. Add test: doctor detects namespaced tags as recoverable when specId known (AC-6)
 
 ### Phase 4: Documentation (FR-8, FR-9)
 18. Update all 8 canonical command files in `resources/commands/`
@@ -229,15 +231,16 @@ No new external dependencies. Uses existing `execa`, `node:fs`, `node:path`.
 ## Testing Strategy
 
 **Unit tests** (Vitest):
-- `tagStage()`: verify tag name format with specId
-- `getCompletedStagesFromTags()`: verify scoped listing and regex extraction
-- `resolveSpecId()`: verify branch, legacy, and directory fallback paths
-- `checkStateRecovery()`: verify scoped and broad tag patterns
+- `tagStage()`: verify tag name format with specId (AC-1)
+- `getCompletedStagesFromTags()`: verify scoped listing and regex extraction (AC-4)
+- `resolveSpecId()`: verify branch precedence over directory (AC-11), legacy fallback, directory fallback, null when nothing resolvable (AC-12)
+- `checkStateRecovery()`: verify scoped pattern with specId (AC-6, AC-11), broad pattern without specId (AC-12)
 
 **Integration tests** (Vitest with temp git repos):
-- Full recovery cycle: create namespaced tags → delete state.json → recover → verify stages
-- Clean scoping: create tags for 2 specs → clean one → verify other's tags remain
-- Legacy coexistence: mix old and new tags → verify only new are processed
+- Full recovery cycle: create namespaced tags → delete state.json → recover → verify stages (AC-4)
+- Clean scoping: create tags for 2 specs → clean one → verify other's tags remain (AC-2, AC-3)
+- Clean null-specId fallback: state.json exists with null specId, branch resolves specId → scoped deletion (AC-13)
+- Legacy coexistence: mix old and new tags → recovery/doctor/clean all ignore legacy (AC-9)
 
 **Manual verification**:
 - Run a full steel workflow (`specify` → `retrospect`) and verify `git tag -l "steel/*"` shows namespaced tags
