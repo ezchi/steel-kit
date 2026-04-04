@@ -149,6 +149,54 @@ describe('runDoctor', () => {
     });
   });
 
+  describe('legacy-prefix drift', () => {
+    it('stale state.branch=spec/* does NOT suppress drift when live branch differs', async () => {
+      mkdirSync(resolve(tempDir, '.steel'), { recursive: true });
+      writeFile(tempDir, '.steel/config.json', JSON.stringify({
+        forge: { provider: 'codex' },
+        gauge: { provider: 'codex' },
+        maxIterations: 5,
+        autoCommit: true,
+        specsDir: 'specs',
+        git: { branchPrefix: 'feature/', baseBranch: 'main' },
+      }));
+      writeFile(tempDir, '.steel/constitution.md', '# Real\nContent');
+      writeFile(tempDir, '.steel/.gitignore', 'state.json');
+      writeFile(tempDir, '.steel/state.json', JSON.stringify({
+        currentStage: 'planning',
+        iteration: 1,
+        specId: '001-test',
+        branch: 'spec/001-test', // stale state.branch with legacy prefix
+        stages: {
+          specification: { status: 'complete' },
+          clarification: { status: 'complete' },
+          planning: { status: 'in_progress' },
+          task_breakdown: { status: 'pending' },
+          implementation: { status: 'pending' },
+          validation: { status: 'pending' },
+          retrospect: { status: 'pending' },
+        },
+      }));
+      mkdirSync(resolve(tempDir, 'specs', '001-test'), { recursive: true });
+      writeFile(tempDir, 'specs/001-test/spec.md', '# Spec');
+
+      // Set up a real git repo on 'main' (not spec/*)
+      const { execSync } = require('node:child_process');
+      execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+      execSync('git checkout -b main', { cwd: tempDir, stdio: 'ignore' });
+      execSync('git add .', { cwd: tempDir, stdio: 'ignore' });
+      execSync('git commit -m "init"', { cwd: tempDir, stdio: 'ignore' });
+
+      const result = await runDoctor(tempDir);
+      // Should NOT emit drift-legacy-prefix because live branch is 'main', not 'spec/*'
+      const legacyDiag = findDiag(result, 'drift-legacy-prefix');
+      expect(legacyDiag).toBeUndefined();
+      // Should still flag drift-branch-state-branch because state.branch doesn't match expected
+      const driftDiag = findDiag(result, 'drift-branch-state-branch');
+      expect(driftDiag).toBeDefined();
+    });
+  });
+
   describe('aggregation', () => {
     it('returns pass when .steel/ is fully healthy', async () => {
       mkdirSync(resolve(tempDir, '.steel'), { recursive: true });
