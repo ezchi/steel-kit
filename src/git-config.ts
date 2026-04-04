@@ -37,7 +37,9 @@ export function validateBranchPrefix(value: string): void {
   // Branch prefixes allow trailing / (e.g. "spec/", "feature/")
   // Check the value without trailing slash for other rules
   const check = value.endsWith('/') ? value.slice(0, -1) : value;
-  if (check === '') return; // Just "/" alone — will fail composed-ref check
+  if (check === '') {
+    throw new Error(`Invalid branchPrefix '${value}': prefix cannot be just '/'`);
+  }
   const violation = describeViolation(check);
   if (violation && violation !== 'value must be non-empty') {
     throw new Error(`Invalid branchPrefix '${value}': ${violation}`);
@@ -100,6 +102,9 @@ export function validateSpecIdComponent(value: string): void {
 
 export function validateComposedRef(prefix: string, specId: string): void {
   const composed = prefix + specId;
+  if (composed.startsWith('/')) {
+    throw new Error(`Invalid branch name '${composed}': starts with '/'`);
+  }
   const violation = describeViolation(composed);
   if (violation) {
     throw new Error(`Invalid branch name '${composed}': ${violation}`);
@@ -116,8 +121,11 @@ const KNOWN_VALID_PREFIXES = new Set(['spec/', 'feature/']);
 
 export function resolveGitConfig(config: SteelConfig): ResolvedGitConfig {
   const gitConfig = config.git ?? {};
-  const workflow: GitWorkflow = gitConfig.workflow ?? 'steel';
-  const preset = GIT_PRESETS[workflow] ?? GIT_PRESETS['steel'];
+  const workflow: GitWorkflow = gitConfig.workflow
+    && VALID_WORKFLOWS.includes(gitConfig.workflow)
+    ? gitConfig.workflow
+    : 'steel';
+  const preset = GIT_PRESETS[workflow];
 
   const resolved: ResolvedGitConfig = {
     workflow,
@@ -137,12 +145,11 @@ export function resolveGitConfig(config: SteelConfig): ResolvedGitConfig {
     validateBranchPrefix(resolved.branchPrefix);
   }
 
-  const isPresetBase = !gitConfig.baseBranch;
-  if (!isPresetBase) {
+  if (gitConfig.baseBranch !== undefined) {
     validateBranchName(resolved.baseBranch, 'baseBranch');
   }
 
-  if (gitConfig.developBranch) {
+  if (gitConfig.developBranch !== undefined) {
     validateBranchName(resolved.developBranch!, 'developBranch');
   }
 

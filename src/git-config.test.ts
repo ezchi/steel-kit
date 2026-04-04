@@ -83,6 +83,24 @@ describe('resolveGitConfig', () => {
       resolveGitConfig(makeConfig({ branchPrefix: '' }))
     ).toThrow('non-empty');
   });
+
+  it('falls back to steel for invalid workflow string', () => {
+    const result = resolveGitConfig(makeConfig({ workflow: 'invalid' as any }));
+    expect(result.workflow).toBe('steel');
+    expect(result.branchPrefix).toBe('spec/');
+  });
+
+  it('rejects empty baseBranch when explicitly set', () => {
+    expect(() =>
+      resolveGitConfig(makeConfig({ baseBranch: '' }))
+    ).toThrow('non-empty');
+  });
+
+  it('rejects empty developBranch when explicitly set', () => {
+    expect(() =>
+      resolveGitConfig(makeConfig({ developBranch: '' }))
+    ).toThrow('non-empty');
+  });
 });
 
 describe('validateBranchPrefix', () => {
@@ -108,6 +126,10 @@ describe('validateBranchPrefix', () => {
 
   it('rejects tilde', () => {
     expect(() => validateBranchPrefix('feat~ure/')).toThrow('~');
+  });
+
+  it('rejects just "/" as prefix', () => {
+    expect(() => validateBranchPrefix('/')).toThrow("cannot be just '/'");
   });
 });
 
@@ -174,5 +196,9 @@ describe('validateComposedRef', () => {
 
   it('rejects composition with invalid chars', () => {
     expect(() => validateComposedRef('feat~/', '001-test')).toThrow('~');
+  });
+
+  it('rejects composition starting with /', () => {
+    expect(() => validateComposedRef('/', '001-test')).toThrow("starts with '/'");
   });
 });

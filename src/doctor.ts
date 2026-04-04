@@ -277,11 +277,10 @@ async function checkDrift(
   const gitBranch = await safeGetBranch(projectRoot);
   const expectedBranch = `${branchPrefix}${state.specId}`;
 
-  // Detect legacy compatibility case: configured prefix != spec/ but branch uses spec/
-  const isLegacyCase = branchPrefix !== 'spec/' && (
-    (gitBranch && gitBranch.startsWith('spec/')) ||
-    (state.branch && state.branch.startsWith('spec/'))
-  );
+  // Detect legacy compatibility case: configured prefix != spec/ but the actual
+  // checked-out branch uses spec/. Only triggered by the live git branch, not stale state.
+  const isLegacyCase = branchPrefix !== 'spec/' &&
+    gitBranch !== null && gitBranch.startsWith('spec/');
 
   if (isLegacyCase) {
     // Legacy compatibility: suppress all branch-prefix mismatch diagnostics
