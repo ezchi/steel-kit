@@ -5,7 +5,6 @@ import { STEEL_KIT_ROOT } from './utils.js';
 
 interface CommandInstallResult {
   claude: number;
-  gemini: number;
   codex: number;
   warnings: string[];
 }
@@ -30,18 +29,13 @@ export async function installProjectCommands(
     'Claude Code commands',
     warnings,
   );
-  const gemini = await attemptInstall(
-    () => installGeminiCommands(projectRoot, commandFiles),
-    'Gemini CLI commands',
-    warnings,
-  );
   const codex = await attemptInstall(
     () => installCodexSkills(projectRoot, commandFiles),
-    'Codex skills',
+    'Agent skills',
     warnings,
   );
 
-  return { claude, gemini, codex, warnings };
+  return { claude, codex, warnings };
 }
 
 async function attemptInstall(
@@ -72,26 +66,6 @@ async function installClaudeCommands(
   return commandFiles.length;
 }
 
-async function installGeminiCommands(
-  projectRoot: string,
-  commandFiles: string[],
-): Promise<number> {
-  const targetDir = resolve(projectRoot, '.gemini', 'commands');
-  await mkdir(targetDir, { recursive: true });
-
-  for (const file of commandFiles) {
-    const sourcePath = resolve(COMMAND_SOURCE_DIR, file);
-    const prompt = await readFile(sourcePath, 'utf-8');
-    const targetName = file.replace(/\.md$/, '.toml');
-    await writeFile(
-      resolve(targetDir, targetName),
-      renderGeminiCommandToml(file, prompt),
-    );
-  }
-
-  return commandFiles.length;
-}
-
 async function installCodexSkills(
   projectRoot: string,
   commandFiles: string[],
@@ -107,24 +81,29 @@ async function installCodexSkills(
     await mkdir(skillDir, { recursive: true });
     await writeFile(
       resolve(skillDir, 'SKILL.md'),
-      renderCodexSkill(file, prompt),
+      renderAgentSkill(file, prompt),
     );
   }
 
   return commandFiles.length;
 }
 
-export function renderGeminiCommandToml(filename: string, markdown: string): string {
-  const commandName = filename.replace(/\.md$/, '');
-  const description = extractDescription(markdown, commandName);
-  const prompt = adaptMarkdownForGemini(markdown);
+export function renderAgentSkill(filename: string, markdown: string): string {
+  const stem = filename.replace(/\.md$/, '');
+  const description = extractDescription(markdown, stem);
+  const body = adaptMarkdownForAgentSkill(markdown);
 
   return [
-    `description = ${toTomlString(description)}`,
+    '---',
+    `name: ${stem}`,
+    `description: ${JSON.stringify(`Steel-Kit workflow skill: ${description}`)}`,
+    '---',
     '',
-    'prompt = """',
-    prompt.replace(/"""/g, '\\"\\"\\"'),
-    '"""',
+    `# ${stem}`,
+    '',
+    `Use this skill when the user invokes \`/${stem}\` or asks to run the corresponding Steel-Kit workflow step.`,
+    '',
+    body,
     '',
   ].join('\n');
 }
@@ -138,36 +117,6 @@ function extractDescription(markdown: string, fallback: string): string {
   return line ?? `Steel-Kit workflow command: ${fallback}`;
 }
 
-function adaptMarkdownForGemini(markdown: string): string {
-  return markdown.replace(/\$ARGUMENTS/g, '<args>');
-}
-
-export function renderCodexSkill(filename: string, markdown: string): string {
-  const stem = filename.replace(/\.md$/, '');
-  const description = extractDescription(markdown, stem);
-  const body = adaptMarkdownForCodexSkill(markdown);
-
-  return [
-    '---',
-    `name: ${stem}`,
-    `description: ${JSON.stringify(`Steel-Kit workflow skill: ${description}`)}`,
-    '---',
-    '',
-    `# ${stem}`,
-    '',
-    `Use this skill when the user invokes \`$${stem}\` or asks to run the corresponding Steel-Kit workflow step in Codex.`,
-    '',
-    body,
-    '',
-  ].join('\n');
-}
-
-function adaptMarkdownForCodexSkill(markdown: string): string {
-  return markdown
-    .replace(/\$ARGUMENTS/g, 'the user-provided input')
-    .replace(/\/steel-/g, '$steel-');
-}
-
-function toTomlString(value: string): string {
-  return JSON.stringify(value);
+function adaptMarkdownForAgentSkill(markdown: string): string {
+  return markdown.replace(/\$ARGUMENTS/g, 'the user-provided input');
 }

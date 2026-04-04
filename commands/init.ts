@@ -1,4 +1,4 @@
-import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, readdir, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { input } from '@inquirer/prompts';
@@ -131,7 +131,7 @@ tasks.json
 
   log.success('Steel-Kit initialized!');
   log.info('Next steps:');
-  log.info('  1. Set up LLM auth (e.g. ANTHROPIC_API_KEY, GEMINI_API_KEY, or login)');
+  log.info('  1. Set up LLM auth (e.g. ANTHROPIC_API_KEY, or login)');
   log.info('  2. Run: steel constitution  (or edit .steel/constitution.md manually)');
   log.info('  3. Review the constitution and make sure it is project-specific');
   log.info('  4. Run: steel specify "<feature description>"');
@@ -231,13 +231,15 @@ async function mergeAndWriteConfig(
 
 async function installSlashCommands(projectRoot: string): Promise<string[] | null> {
   try {
+    // Clean up stale Gemini TOML files from previous installations
+    await cleanupStaleGeminiCommands(projectRoot);
+
     const result = await installProjectCommands(projectRoot);
     log.success(
-      `Installed commands: Claude=${result.claude}, Gemini=${result.gemini}, Codex skills=${result.codex}`,
+      `Installed commands: Claude=${result.claude}, Agent skills=${result.codex}`,
     );
     if (result.codex > 0) {
-      log.info('Codex skills were written to `.agents/skills/`.');
-      log.info('In Codex, invoke them as `$steel-constitution`, `$steel-specify`, `$steel-plan`, and so on.');
+      log.info('Agent skills were written to `.agents/skills/`.');
     }
     for (const warning of result.warnings) {
       log.warn(`Command install warning: ${warning}`);
@@ -245,12 +247,31 @@ async function installSlashCommands(projectRoot: string): Promise<string[] | nul
     // Return directories that were actually written to
     const dirs: string[] = [];
     if (result.claude > 0) dirs.push(resolve(projectRoot, '.claude', 'commands'));
-    if (result.gemini > 0) dirs.push(resolve(projectRoot, '.gemini', 'commands'));
     if (result.codex > 0) dirs.push(resolve(projectRoot, '.agents', 'skills'));
     return dirs.length > 0 ? dirs : null;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     log.warn(`Command installation skipped: ${message}`);
     return null;
+  }
+}
+
+async function cleanupStaleGeminiCommands(projectRoot: string): Promise<void> {
+  const geminiDir = resolve(projectRoot, '.gemini', 'commands');
+  if (!existsSync(geminiDir)) return;
+
+  try {
+    const files = await readdir(geminiDir);
+    const staleFiles = files.filter(
+      (f) => f.startsWith('steel-') && f.endsWith('.toml'),
+    );
+    if (staleFiles.length === 0) return;
+
+    for (const file of staleFiles) {
+      await unlink(resolve(geminiDir, file));
+    }
+    log.info(`Removed ${staleFiles.length} stale .gemini/commands/ TOML files`);
+  } catch {
+    // Best-effort cleanup — don't fail init
   }
 }
