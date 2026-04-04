@@ -1,47 +1,32 @@
 {
-  "currentStage": "retrospect",
-  "iteration": 2,
-  "specId": "003-namespace-git-tags-by-specid",
-  "branch": "spec/003-namespace-git-tags-by-specid",
-  "description": "Namespace git tags by specId to prevent tag collisions across specs",
+  "currentStage": "specification",
+  "iteration": 1,
+  "specId": "004-commit-only-constitution",
+  "branch": "spec/004-commit-only-constitution",
+  "description": "Only the constitution.md under .steel/ directory should be committed, as different contributors may use different configs",
   "stages": {
     "specification": {
-      "status": "complete",
-      "iteration": 5
+      "status": "in_progress",
+      "iteration": 1
     },
     "clarification": {
-      "status": "complete",
-      "iteration": 1
+      "status": "pending"
     },
     "planning": {
-      "status": "complete",
-      "iteration": 1
+      "status": "pending"
     },
     "task_breakdown": {
-      "status": "complete",
-      "iteration": 3
+      "status": "pending"
     },
     "implementation": {
-      "status": "complete",
-      "completedAt": "2026-04-04T12:37:00.000Z"
+      "status": "pending"
     },
     "validation": {
-      "status": "complete",
-      "completedAt": "2026-04-04T12:42:00.000Z"
+      "status": "pending"
     },
     "retrospect": {
-      "status": "complete",
-      "completedAt": "2026-04-04T12:50:00.000Z",
-      "iteration": 2
+      "status": "pending"
     }
   },
-  "skillsUsed": {
-    "specification": [],
-    "clarification": [],
-    "planning": [],
-    "task_breakdown": [],
-    "implementation": [],
-    "validation": [],
-    "retrospect": []
-  }
+  "skillsUsed": {}
 }
