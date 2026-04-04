@@ -19,7 +19,7 @@ Review the entire workflow to extract learnings, memory candidates, and skill im
    - `specs/<specId>/validation.md`
    - All iteration artifacts in `specs/<specId>/artifacts/*/iter*-forge.md` and `iter*-gauge.md`
    - The `skillsUsed` field from `.steel/state.json`
-   - Git log for the spec branch: `git log --oneline steel/specification-complete..HEAD`
+   - Git log for the spec branch: `git log --oneline steel/<specId>/specification-complete..HEAD`
 
 3. **FORGE-GAUGE LOOP** (max iterations from config):
 
@@ -105,6 +105,6 @@ Review the entire workflow to extract learnings, memory candidates, and skill im
 
    The user can accept all, pick specific items, or decline.
 
-5. Update `.steel/state.json`: mark `retrospect` as complete, tag `steel/retrospect-complete`.
+5. Update `.steel/state.json`: mark `retrospect` as complete, tag `steel/<specId>/retrospect-complete`.
 
 6. Show final summary: "Workflow complete! All stages including retrospect passed."
