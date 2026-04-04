@@ -150,25 +150,16 @@ async function recoverState(
 ): Promise<WorkflowState> {
   const state = createInitialState();
 
-  // 1. Detect specId from branch name using configured prefix or legacy spec/ fallback
-  const { resolveGitConfig } = await import('./git-config.js');
-  const gitConfig = resolveGitConfig(config);
-  const branch = await getCurrentBranch(projectRoot).catch(() => 'unknown');
-  if (branch.startsWith(gitConfig.branchPrefix)) {
-    state.specId = branch.slice(gitConfig.branchPrefix.length);
-    state.branch = branch;
-  } else if (gitConfig.branchPrefix !== 'spec/' && branch.startsWith('spec/')) {
-    // Legacy fallback: detect spec/ branches even when configured prefix differs (FR-20)
-    state.specId = branch.slice(5);
-    state.branch = branch;
-  } else {
-    const specsDir = getSpecsDir(projectRoot, config);
-    if (existsSync(specsDir)) {
-      const entries = await readdir(specsDir);
-      if (entries.length > 0) {
-        const sorted = entries.sort();
-        state.specId = sorted[sorted.length - 1];
-      }
+  // 1. Detect specId from branch name or specs directory
+  const { resolveSpecId, resolveGitConfig } = await import('./git-config.js');
+  state.specId = (await resolveSpecId(projectRoot, config)) ?? undefined;
+
+  // Set branch if specId was derived from it
+  if (state.specId) {
+    const gitConfig = resolveGitConfig(config);
+    const branch = await getCurrentBranch(projectRoot).catch(() => 'unknown');
+    if (branch.startsWith(gitConfig.branchPrefix) || branch.startsWith('spec/')) {
+      state.branch = branch;
     }
   }
 

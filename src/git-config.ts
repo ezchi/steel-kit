@@ -1,4 +1,8 @@
+import { existsSync } from 'node:fs';
+import { readdir } from 'node:fs/promises';
 import type { SteelConfig, GitWorkflow, GitConfig, ResolvedGitConfig } from './config.js';
+import { getSpecsDir } from './config.js';
+import { getCurrentBranch } from './git-ops.js';
 
 const VALID_WORKFLOWS: GitWorkflow[] = ['steel', 'github-flow', 'gitflow'];
 
@@ -159,4 +163,24 @@ export function resolveGitConfig(config: SteelConfig): ResolvedGitConfig {
   }
 
   return resolved;
+}
+
+export async function resolveSpecId(
+  projectRoot: string,
+  config: SteelConfig,
+): Promise<string | null> {
+  const gitConfig = resolveGitConfig(config);
+  const branch = await getCurrentBranch(projectRoot).catch(() => 'unknown');
+  if (branch.startsWith(gitConfig.branchPrefix)) {
+    return branch.slice(gitConfig.branchPrefix.length);
+  }
+  if (gitConfig.branchPrefix !== 'spec/' && branch.startsWith('spec/')) {
+    return branch.slice(5);
+  }
+  const specsDir = getSpecsDir(projectRoot, config);
+  if (existsSync(specsDir)) {
+    const entries = (await readdir(specsDir)).sort();
+    if (entries.length > 0) return entries[entries.length - 1];
+  }
+  return null;
 }
