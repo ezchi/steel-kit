@@ -20,7 +20,7 @@ Remove the artifacts of the current workflow and reset state so you can start fr
    - `.steel/tasks.json`
    - `specs/<specId>/artifacts/` (iteration artifacts only, not spec/plan/retrospect files)
    - `specs/<specId>/retrospect.md`
-   - Git tags matching `steel/*-complete`
+   - Git tags matching `steel/<specId>/*-complete` (scoped to active spec; falls back to `steel/*/*-complete` if specId unknown)
 
 4. Ask the user to confirm: "This will remove iteration artifacts for spec `<specId>` and reset workflow state. Continue?"
 
@@ -28,7 +28,7 @@ Remove the artifacts of the current workflow and reset state so you can start fr
    a. Delete `specs/<specId>/artifacts/` directory (if it exists)
    b. Delete `.steel/state.json` (if it exists)
    c. Delete `.steel/tasks.json` (if it exists)
-   d. Remove all `steel/*-complete` git tags (local only)
+   d. Remove `steel/<specId>/*-complete` git tags for the active spec (local only). If specId cannot be resolved, fall back to `steel/*/*-complete` with a warning.
    e. Reset `.steel/state.json` to initial state (specification pending)
 
 6. Git commit: `steel(clean): remove artifacts for <specId>`

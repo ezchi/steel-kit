@@ -56,7 +56,7 @@ Generate an implementation plan using the Forge-Gauge loop.
 
 4. Auto-advance to `task_breakdown` stage. **No human approval needed here.**
 
-5. Update `.steel/state.json`, tag `steel/planning-complete`.
+5. Update `.steel/state.json`, tag `steel/<specId>/planning-complete`.
 
 6. **Track skills used**: Update `.steel/state.json` field `skillsUsed.planning` with an array of skill names you invoked during this stage. If no skills were used, set it to `[]`.
 

@@ -76,7 +76,7 @@ Feature description: the user-provided input
 
    Ask the user: **"Approve specification and advance to clarification?"**
 
-   - If **approved**: update state to `clarification` stage, tag `steel/specification-complete`, and go to step 8.
+   - If **approved**: update state to `clarification` stage, tag `steel/<specId>/specification-complete`, and go to step 8.
    - If **rejected**: enter **Delta Clarification Mode** (step 7a).
 
    ### 7a. Delta Clarification Mode

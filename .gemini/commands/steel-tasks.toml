@@ -52,7 +52,7 @@ Break the implementation plan into ordered, actionable tasks using the Forge-Gau
 
 5. Auto-advance to `implementation` stage. **No human approval needed.**
 
-6. Update `.steel/state.json`, tag `steel/task_breakdown-complete`.
+6. Update `.steel/state.json`, tag `steel/<specId>/task_breakdown-complete`.
 
 7. **Track skills used**: Update `.steel/state.json` field `skillsUsed.task_breakdown` with an array of skill names you invoked during this stage. If no skills were used, set it to `[]`.
 

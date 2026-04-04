@@ -70,7 +70,7 @@ Run clarification on the current specification using the Forge-Gauge loop.
 
    Ask the user: **"Approve clarifications and advance to planning?"**
 
-   - If **approved**: update state to `planning` stage, tag `steel/clarification-complete`, and go to step 5.
+   - If **approved**: update state to `planning` stage, tag `steel/<specId>/clarification-complete`, and go to step 5.
    - If **rejected**: enter **Delta Clarification Mode** (step 4a).
 
    ### 4a. Delta Clarification Mode

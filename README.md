@@ -257,7 +257,7 @@ Git commits follow the pattern:
 
 `state.json` and `tasks.json` are gitignored because they change every iteration and would cause merge conflicts. On a fresh checkout, the tool automatically reconstructs `state.json` from:
 
-1. **Git tags** — each completed stage is tagged `steel/<stage>-complete`
+1. **Git tags** — each completed stage is tagged `steel/<specId>/<stage>-complete`
 2. **Spec files** — presence of `spec.md`, `plan.md`, etc. indicates stage completion
 3. **Branch name** — `spec/<specId>` convention identifies the active spec
 
