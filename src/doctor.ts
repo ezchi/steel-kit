@@ -48,6 +48,7 @@ const SEVERITY_MATRIX: Record<string, 'warn' | 'fail'> = {
   'drift-state-branch': 'warn',
   'drift-specid-dir': 'fail',
   'drift-branch-state-branch': 'warn',
+  'drift-legacy-prefix': 'warn',
   'stage-files-prior': 'fail',
   'stage-files-current': 'warn',
   'state-recovery': 'warn',
@@ -261,41 +262,84 @@ async function checkDrift(
   if (!state || !state.specId) return [];
   const diags: Diagnostic[] = [];
 
-  const gitBranch = await safeGetBranch(projectRoot);
-  const expectedBranch = `spec/${state.specId}`;
-
-  // state.branch vs spec/<specId>
-  if (state.branch && state.branch !== expectedBranch) {
-    diags.push({
-      id: 'drift-branch-state-branch',
-      status: severity('drift-branch-state-branch'),
-      summary: `state.branch (${state.branch}) differs from expected spec/${state.specId}`,
-      details: `state.branch is "${state.branch}" but specId "${state.specId}" implies branch "${expectedBranch}"`,
-    });
+  // Resolve git config for branch prefix
+  let branchPrefix = 'spec/';
+  try {
+    const { resolveGitConfig } = await import('./git-config.js');
+    if (config) {
+      const gitConfig = resolveGitConfig(config);
+      branchPrefix = gitConfig.branchPrefix;
+    }
+  } catch {
+    // Fall back to default prefix
   }
 
-  if (gitBranch) {
-    // state.specId vs git branch
-    if (gitBranch.startsWith('spec/')) {
+  const gitBranch = await safeGetBranch(projectRoot);
+  const expectedBranch = `${branchPrefix}${state.specId}`;
+
+  // Detect legacy compatibility case: configured prefix != spec/ but branch uses spec/
+  const isLegacyCase = branchPrefix !== 'spec/' && (
+    (gitBranch && gitBranch.startsWith('spec/')) ||
+    (state.branch && state.branch.startsWith('spec/'))
+  );
+
+  if (isLegacyCase) {
+    // Legacy compatibility: suppress all branch-prefix mismatch diagnostics
+    // and emit only a warning (FR-23, AC-12)
+    diags.push({
+      id: 'drift-legacy-prefix',
+      status: severity('drift-legacy-prefix'),
+      summary: `Branch uses legacy 'spec/' prefix but config expects '${branchPrefix}'`,
+      remediation: `Rename the branch to '${expectedBranch}' or update config to use branchPrefix: 'spec/'.`,
+    });
+
+    // Still check specId extraction from the legacy branch for directory checks
+    if (gitBranch && gitBranch.startsWith('spec/')) {
       const gitSpecId = gitBranch.slice('spec/'.length);
       if (gitSpecId !== state.specId) {
         diags.push({
           id: 'drift-specid-branch',
           status: severity('drift-specid-branch'),
           summary: `state.specId (${state.specId}) does not match git branch (${gitBranch})`,
-          remediation: `Switch to branch "${expectedBranch}" or update state.`,
+          remediation: `Switch to branch "spec/${state.specId}" or update state.`,
         });
       }
     }
-
-    // current git branch vs state.branch
-    if (state.branch && gitBranch !== state.branch) {
+  } else {
+    // Normal case: use configured prefix
+    // state.branch vs expected branch
+    if (state.branch && state.branch !== expectedBranch) {
       diags.push({
-        id: 'drift-state-branch',
-        status: severity('drift-state-branch'),
-        summary: `Current branch (${gitBranch}) differs from state.branch (${state.branch})`,
-        remediation: `Switch to branch "${state.branch}" to resume the workflow.`,
+        id: 'drift-branch-state-branch',
+        status: severity('drift-branch-state-branch'),
+        summary: `state.branch (${state.branch}) differs from expected ${expectedBranch}`,
+        details: `state.branch is "${state.branch}" but specId "${state.specId}" implies branch "${expectedBranch}"`,
       });
+    }
+
+    if (gitBranch) {
+      // state.specId vs git branch
+      if (gitBranch.startsWith(branchPrefix)) {
+        const gitSpecId = gitBranch.slice(branchPrefix.length);
+        if (gitSpecId !== state.specId) {
+          diags.push({
+            id: 'drift-specid-branch',
+            status: severity('drift-specid-branch'),
+            summary: `state.specId (${state.specId}) does not match git branch (${gitBranch})`,
+            remediation: `Switch to branch "${expectedBranch}" or update state.`,
+          });
+        }
+      }
+
+      // current git branch vs state.branch
+      if (state.branch && gitBranch !== state.branch) {
+        diags.push({
+          id: 'drift-state-branch',
+          status: severity('drift-state-branch'),
+          summary: `Current branch (${gitBranch}) differs from state.branch (${state.branch})`,
+          remediation: `Switch to branch "${state.branch}" to resume the workflow.`,
+        });
+      }
     }
   }
 

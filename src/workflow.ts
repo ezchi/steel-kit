@@ -150,9 +150,15 @@ async function recoverState(
 ): Promise<WorkflowState> {
   const state = createInitialState();
 
-  // 1. Detect specId from branch name (spec/<specId>) or specs/ directory
+  // 1. Detect specId from branch name using configured prefix or legacy spec/ fallback
+  const { resolveGitConfig } = await import('./git-config.js');
+  const gitConfig = resolveGitConfig(config);
   const branch = await getCurrentBranch(projectRoot).catch(() => 'unknown');
-  if (branch.startsWith('spec/')) {
+  if (branch.startsWith(gitConfig.branchPrefix)) {
+    state.specId = branch.slice(gitConfig.branchPrefix.length);
+    state.branch = branch;
+  } else if (gitConfig.branchPrefix !== 'spec/' && branch.startsWith('spec/')) {
+    // Legacy fallback: detect spec/ branches even when configured prefix differs (FR-20)
     state.specId = branch.slice(5);
     state.branch = branch;
   } else {
