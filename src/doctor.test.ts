@@ -197,6 +197,95 @@ describe('runDoctor', () => {
     });
   });
 
+  describe('configurable-prefix drift checks', () => {
+    it('feature/ config + feature/002-test branch → no drift (AC-11)', async () => {
+      mkdirSync(resolve(tempDir, '.steel'), { recursive: true });
+      writeFile(tempDir, '.steel/config.json', JSON.stringify({
+        forge: { provider: 'codex' },
+        gauge: { provider: 'codex' },
+        maxIterations: 5,
+        autoCommit: true,
+        specsDir: 'specs',
+        git: { branchPrefix: 'feature/', baseBranch: 'main' },
+      }));
+      writeFile(tempDir, '.steel/constitution.md', '# Real\nContent');
+      writeFile(tempDir, '.steel/.gitignore', 'state.json');
+      writeFile(tempDir, '.steel/state.json', JSON.stringify({
+        currentStage: 'planning',
+        iteration: 1,
+        specId: '002-test',
+        branch: 'feature/002-test',
+        stages: {
+          specification: { status: 'complete' },
+          clarification: { status: 'complete' },
+          planning: { status: 'in_progress' },
+          task_breakdown: { status: 'pending' },
+          implementation: { status: 'pending' },
+          validation: { status: 'pending' },
+          retrospect: { status: 'pending' },
+        },
+      }));
+      mkdirSync(resolve(tempDir, 'specs', '002-test'), { recursive: true });
+      writeFile(tempDir, 'specs/002-test/spec.md', '# Spec');
+
+      const { execSync } = require('node:child_process');
+      execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+      execSync('git add .', { cwd: tempDir, stdio: 'ignore' });
+      execSync('git commit -m "init"', { cwd: tempDir, stdio: 'ignore' });
+      execSync('git checkout -b feature/002-test', { cwd: tempDir, stdio: 'ignore' });
+
+      const result = await runDoctor(tempDir);
+      const driftDiags = result.diagnostics.filter((d) => d.id.startsWith('drift-') && d.status === 'fail');
+      expect(driftDiags).toHaveLength(0);
+    });
+
+    it('feature/ config + spec/002-test branch → legacy-prefix warning only (AC-12)', async () => {
+      mkdirSync(resolve(tempDir, '.steel'), { recursive: true });
+      writeFile(tempDir, '.steel/config.json', JSON.stringify({
+        forge: { provider: 'codex' },
+        gauge: { provider: 'codex' },
+        maxIterations: 5,
+        autoCommit: true,
+        specsDir: 'specs',
+        git: { branchPrefix: 'feature/', baseBranch: 'main' },
+      }));
+      writeFile(tempDir, '.steel/constitution.md', '# Real\nContent');
+      writeFile(tempDir, '.steel/.gitignore', 'state.json');
+      writeFile(tempDir, '.steel/state.json', JSON.stringify({
+        currentStage: 'planning',
+        iteration: 1,
+        specId: '002-test',
+        branch: 'spec/002-test',
+        stages: {
+          specification: { status: 'complete' },
+          clarification: { status: 'complete' },
+          planning: { status: 'in_progress' },
+          task_breakdown: { status: 'pending' },
+          implementation: { status: 'pending' },
+          validation: { status: 'pending' },
+          retrospect: { status: 'pending' },
+        },
+      }));
+      mkdirSync(resolve(tempDir, 'specs', '002-test'), { recursive: true });
+      writeFile(tempDir, 'specs/002-test/spec.md', '# Spec');
+
+      const { execSync } = require('node:child_process');
+      execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+      execSync('git add .', { cwd: tempDir, stdio: 'ignore' });
+      execSync('git commit -m "init"', { cwd: tempDir, stdio: 'ignore' });
+      execSync('git checkout -b spec/002-test', { cwd: tempDir, stdio: 'ignore' });
+
+      const result = await runDoctor(tempDir);
+      // Should emit legacy-prefix warning
+      const legacyDiag = findDiag(result, 'drift-legacy-prefix');
+      expect(legacyDiag).toBeDefined();
+      expect(legacyDiag!.status).toBe('warn');
+      // Should NOT emit any drift failures
+      const driftFails = result.diagnostics.filter((d) => d.id.startsWith('drift-') && d.status === 'fail');
+      expect(driftFails).toHaveLength(0);
+    });
+  });
+
   describe('aggregation', () => {
     it('returns pass when .steel/ is fully healthy', async () => {
       mkdirSync(resolve(tempDir, '.steel'), { recursive: true });
