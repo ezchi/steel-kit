@@ -286,6 +286,93 @@ describe('runDoctor', () => {
     });
   });
 
+  describe('state recovery with namespaced tags', () => {
+    it('detects namespaced tags as recoverable when specId known (AC-6)', async () => {
+      mkdirSync(resolve(tempDir, '.steel'), { recursive: true });
+      writeFile(tempDir, '.steel/config.json', '{"forge":{"provider":"codex"},"gauge":{"provider":"codex"},"maxIterations":5,"autoCommit":true,"specsDir":"specs"}');
+      writeFile(tempDir, '.steel/constitution.md', '# Real\nContent');
+      writeFile(tempDir, '.steel/.gitignore', 'state.json');
+      mkdirSync(resolve(tempDir, 'specs', '003-test'), { recursive: true });
+      writeFile(tempDir, 'specs/003-test/spec.md', '# Spec');
+
+      initGitRepo(tempDir);
+      const { execSync } = require('node:child_process');
+      execSync('git checkout -b spec/003-test', { cwd: tempDir, stdio: 'ignore' });
+      execSync('git tag steel/003-test/specification-complete', { cwd: tempDir, stdio: 'ignore' });
+
+      // No state.json — should detect recoverable state
+      const result = await runDoctor(tempDir);
+      const diag = findDiag(result, 'state-recovery');
+      expect(diag).toBeDefined();
+      expect(diag!.status).toBe('warn');
+      expect(diag!.summary).toContain('recoverable');
+    });
+
+    it('uses scoped tag pattern with branch-derived specId (AC-11)', async () => {
+      mkdirSync(resolve(tempDir, '.steel'), { recursive: true });
+      writeFile(tempDir, '.steel/config.json', JSON.stringify({
+        forge: { provider: 'codex' },
+        gauge: { provider: 'codex' },
+        maxIterations: 5,
+        autoCommit: true,
+        specsDir: 'specs',
+        git: { branchPrefix: 'feature/', baseBranch: 'main' },
+      }));
+      writeFile(tempDir, '.steel/constitution.md', '# Real\nContent');
+      writeFile(tempDir, '.steel/.gitignore', 'state.json');
+      mkdirSync(resolve(tempDir, 'specs', '003-test'), { recursive: true });
+
+      const { execSync } = require('node:child_process');
+      execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+      execSync('git add .', { cwd: tempDir, stdio: 'ignore' });
+      execSync('git commit -m "init"', { cwd: tempDir, stdio: 'ignore' });
+      execSync('git checkout -b feature/003-test', { cwd: tempDir, stdio: 'ignore' });
+      // Create tag for THIS spec — should be found with scoped pattern
+      execSync('git tag steel/003-test/specification-complete', { cwd: tempDir, stdio: 'ignore' });
+      // Create tag for DIFFERENT spec — should NOT be found with scoped pattern
+      execSync('git tag steel/001-other/specification-complete', { cwd: tempDir, stdio: 'ignore' });
+
+      const result = await runDoctor(tempDir);
+      const diag = findDiag(result, 'state-recovery');
+      expect(diag).toBeDefined();
+      expect(diag!.status).toBe('warn');
+    });
+
+    it('falls back to broad pattern with no resolvable specId (AC-12)', async () => {
+      mkdirSync(resolve(tempDir, '.steel'), { recursive: true });
+      writeFile(tempDir, '.steel/config.json', '{"forge":{"provider":"codex"},"gauge":{"provider":"codex"},"maxIterations":5,"autoCommit":true,"specsDir":"specs"}');
+      writeFile(tempDir, '.steel/constitution.md', '# Real\nContent');
+      writeFile(tempDir, '.steel/.gitignore', 'state.json');
+
+      initGitRepo(tempDir);
+      const { execSync } = require('node:child_process');
+      // Create namespaced tag but no way to resolve specId (no branch match, no specs dir)
+      execSync('git tag steel/003-test/specification-complete', { cwd: tempDir, stdio: 'ignore' });
+
+      const result = await runDoctor(tempDir);
+      const diag = findDiag(result, 'state-recovery');
+      expect(diag).toBeDefined();
+      expect(diag!.status).toBe('warn');
+    });
+
+    it('ignores legacy flat tags — only namespaced tags count (AC-9)', async () => {
+      mkdirSync(resolve(tempDir, '.steel'), { recursive: true });
+      writeFile(tempDir, '.steel/config.json', '{"forge":{"provider":"codex"},"gauge":{"provider":"codex"},"maxIterations":5,"autoCommit":true,"specsDir":"specs"}');
+      writeFile(tempDir, '.steel/constitution.md', '# Real\nContent');
+      writeFile(tempDir, '.steel/.gitignore', 'state.json');
+
+      initGitRepo(tempDir);
+      const { execSync } = require('node:child_process');
+      // Only legacy flat tags — no specId resolvable, broad pattern steel/*/*-complete won't match
+      execSync('git tag steel/specification-complete', { cwd: tempDir, stdio: 'ignore' });
+
+      const result = await runDoctor(tempDir);
+      // Legacy tag steel/specification-complete does NOT match steel/*/*-complete
+      const diag = findDiag(result, 'state-recovery');
+      expect(diag).toBeUndefined();
+    });
+  });
+
   describe('aggregation', () => {
     it('returns pass when .steel/ is fully healthy', async () => {
       mkdirSync(resolve(tempDir, '.steel'), { recursive: true });
