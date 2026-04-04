@@ -1,9 +1,12 @@
 Break the implementation plan into ordered, actionable tasks using the Forge-Gauge loop.
 
 ## Prerequisites
+- `.steel/constitution.md` must contain a real project constitution, not the placeholder template
 - `.steel/state.json` currentStage must be `task_breakdown`
 
 ## Steps
+
+0. Run `/clear` to clear the conversation context before starting this stage.
 
 1. Read `.steel/state.json` and `.steel/config.json`. Verify stage is `task_breakdown`.
 
@@ -27,8 +30,9 @@ Break the implementation plan into ordered, actionable tasks using the Forge-Gau
 
    ### Gauge Phase
    e. Call the Gauge LLM (per config) to review the task breakdown. **IMPORTANT: Run the command from the project's working directory, NOT /tmp.**
-      - If gauge is `gemini`: run `gemini -p "<review prompt>"` in the current project directory
-      - If gauge is `codex`: run `codex exec "<review prompt>"` in the current project directory
+      - Write the full review prompt to a file at `specs/<specId>/artifacts/task_breakdown/iterN-gauge-prompt.md`
+      - If gauge is `gemini`: run `gemini "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
+      - If gauge is `codex`: run `codex exec "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
       - If gauge is `claude`: Review critically yourself as the Gauge role.
 
       Review criteria: task completeness, ordering, dependencies, granularity, constitution alignment. End with `VERDICT: APPROVE` or `VERDICT: REVISE`.
@@ -45,7 +49,7 @@ Break the implementation plan into ordered, actionable tasks using the Forge-Gau
 
 5. Auto-advance to `implementation` stage. **No human approval needed.**
 
-6. Update `.steel/state.json`, tag `steel/task_breakdown-complete`.
+6. Update `.steel/state.json`, tag `steel/<specId>/task_breakdown-complete`.
 
 7. **Track skills used**: Update `.steel/state.json` field `skillsUsed.task_breakdown` with an array of skill names you invoked during this stage. If no skills were used, set it to `[]`.
 

@@ -1,0 +1,63 @@
+
+> @steel-kit/core@0.5.1 test
+> vitest
+
+
+ RUN  v3.2.4 /Users/ezchi/Projects/steel-kit
+
+ ✓ src/command-installer.test.ts (1 test) 1ms
+stderr | src/config.test.ts > loadConfig git env vars > invalid STEEL_GIT_WORKFLOW is ignored with warning (AC-15)
+warn STEEL_GIT_WORKFLOW='invalid' is not a valid workflow preset; ignoring
+
+ ✓ src/git-config.test.ts (35 tests) 4ms
+ ✓ commands/init.test.ts (6 tests) 15ms
+ ✓ src/spec-id.test.ts (13 tests) 5ms
+ ✓ src/config.test.ts (7 tests) 12ms
+stderr | src/workflow.test.ts > loadState recovery > recovers specId from feature/ branch with feature/ config (AC-9)
+info state.json not found — recovering state from committed artifacts...
+
+stderr | src/workflow.test.ts > loadState recovery > recovers specId from feature/ branch with feature/ config (AC-9)
+ok Recovered state: stage=clarification, specId=002-add-auth
+
+stderr | src/workflow.test.ts > loadState recovery > recovers specId from spec/ branch with feature/ config — legacy fallback (AC-10)
+info state.json not found — recovering state from committed artifacts...
+
+stderr | src/workflow.test.ts > loadState recovery > recovers specId from spec/ branch with feature/ config — legacy fallback (AC-10)
+ok Recovered state: stage=clarification, specId=001-doctor
+
+stderr | src/workflow.test.ts > tagStage namespaced format > creates tag in steel/<specId>/<stage>-complete format (AC-1)
+info Tagged: steel/003-namespace/specification-complete
+
+stderr | src/workflow.test.ts > tagStage namespaced format > multi-spec tags coexist without overwriting (AC-2)
+info Tagged: steel/001-first/specification-complete
+
+stderr | src/workflow.test.ts > tagStage namespaced format > multi-spec tags coexist without overwriting (AC-2)
+info Tagged: steel/002-second/specification-complete
+
+stderr | src/workflow.test.ts > recovery with namespaced tags > recovers completed stages from namespaced tags (AC-4)
+info state.json not found — recovering state from committed artifacts...
+
+stderr | src/workflow.test.ts > recovery with namespaced tags > recovers completed stages from namespaced tags (AC-4)
+ok Recovered state: stage=planning, specId=003-test
+
+stderr | src/workflow.test.ts > recovery with namespaced tags > skips tag-based recovery when specId is null (AC-5)
+info state.json not found — recovering state from committed artifacts...
+
+stderr | src/workflow.test.ts > recovery with namespaced tags > skips tag-based recovery when specId is null (AC-5)
+ok Recovered state: stage=specification, specId=none
+
+ ✓ commands/clean.test.ts (5 tests) 432ms
+stderr | src/workflow.test.ts > recovery with namespaced tags > ignores legacy flat tags alongside namespaced tags (AC-9)
+info state.json not found — recovering state from committed artifacts...
+
+stderr | src/workflow.test.ts > recovery with namespaced tags > ignores legacy flat tags alongside namespaced tags (AC-9)
+ok Recovered state: stage=clarification, specId=003-test
+
+ ✓ src/doctor.test.ts (17 tests) 552ms
+ ✓ src/workflow.test.ts (10 tests) 585ms
+
+ Test Files  8 passed (8)
+      Tests  94 passed (94)
+   Start at  12:38:09
+   Duration  904ms (transform 334ms, setup 0ms, collect 983ms, tests 1.61s, environment 1ms, prepare 273ms)
+

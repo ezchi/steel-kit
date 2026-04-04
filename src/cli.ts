@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
+import { killActiveProcesses } from './process-tracker.js';
 import { cmdInit } from '../commands/init.js';
 import { cmdConstitution } from '../commands/constitution.js';
 import { cmdSpecify } from '../commands/specify.js';
@@ -16,6 +17,7 @@ import { cmdRunAll } from '../commands/run-all.js';
 import { cmdUpdate } from '../commands/update.js';
 import { cmdUpgrade } from '../commands/upgrade.js';
 import { cmdClean } from '../commands/clean.js';
+import { cmdDoctor } from '../commands/doctor.js';
 
 const program = new Command();
 
@@ -39,7 +41,8 @@ program
   .command('specify')
   .description('Create a specification from a feature description')
   .argument('<description>', 'Feature description')
-  .action(cmdSpecify);
+  .option('--id <value>', 'Custom spec identifier (e.g. Jira ticket ID)')
+  .action((description: string, opts: { id?: string }) => cmdSpecify(description, opts));
 
 program
   .command('clarify')
@@ -100,5 +103,19 @@ program
   .command('clean')
   .description('Remove artifacts and reset workflow state')
   .action(cmdClean);
+
+program
+  .command('doctor')
+  .description('Diagnose project setup, workflow state, and provider health')
+  .option('--json', 'Output diagnostics as JSON')
+  .action(cmdDoctor);
+
+// Kill only processes we spawned — never broad pkill
+for (const sig of ['SIGINT', 'SIGTERM'] as const) {
+  process.on(sig, () => {
+    killActiveProcesses(sig);
+    process.exit(1);
+  });
+}
 
 program.parse();

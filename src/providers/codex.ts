@@ -1,5 +1,7 @@
 import { execa } from 'execa';
 import type { LLMProvider, InvokeOptions } from './index.js';
+import { writePromptFile } from './index.js';
+import { registerPid, unregisterPid } from '../process-tracker.js';
 import { log } from '../utils.js';
 
 export class CodexProvider implements LLMProvider {
@@ -12,24 +14,38 @@ export class CodexProvider implements LLMProvider {
       args.push('--full-auto');
     }
 
-    args.push(prompt);
+    // Write prompt to file and let codex read it directly (no stdin piping)
+    const promptFile = await writePromptFile(prompt, {
+      workingDir: opts?.workingDir,
+      role: 'codex',
+    });
 
-    log.debug(`codex ${args.slice(0, 2).join(' ')}...`);
+    args.push(`Read and follow the instructions in ${promptFile}`);
 
-    const result = await execa('codex', args, {
+    log.debug(`codex ${args.join(' ')}... (prompt: ${promptFile})`);
+
+    const proc = execa('codex', args, {
       cwd: opts?.workingDir,
       timeout: 600_000,
       reject: false,
       stdin: 'ignore',
     });
 
-    if (result.exitCode !== 0) {
-      throw new Error(
-        `Codex CLI failed (exit ${result.exitCode}): ${result.stderr}`,
-      );
-    }
+    if (proc.pid) registerPid(proc.pid);
 
-    return result.stdout;
+    try {
+      const result = await proc;
+
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Codex CLI failed (exit ${result.exitCode}): ${result.stderr}`,
+        );
+      }
+
+      return result.stdout;
+    } finally {
+      if (proc.pid) unregisterPid(proc.pid);
+    }
   }
 
   async check(): Promise<boolean> {

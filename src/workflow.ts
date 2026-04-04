@@ -150,24 +150,27 @@ async function recoverState(
 ): Promise<WorkflowState> {
   const state = createInitialState();
 
-  // 1. Detect specId from branch name (spec/<specId>) or specs/ directory
-  const branch = await getCurrentBranch(projectRoot).catch(() => 'unknown');
-  if (branch.startsWith('spec/')) {
-    state.specId = branch.slice(5);
-    state.branch = branch;
-  } else {
-    const specsDir = getSpecsDir(projectRoot, config);
-    if (existsSync(specsDir)) {
-      const entries = await readdir(specsDir);
-      if (entries.length > 0) {
-        const sorted = entries.sort();
-        state.specId = sorted[sorted.length - 1];
-      }
+  // 1. Detect specId from branch name or specs directory
+  const { resolveSpecId, resolveGitConfig } = await import('./git-config.js');
+  state.specId = (await resolveSpecId(projectRoot, config)) ?? undefined;
+
+  // Only set branch if the current branch actually derived the specId
+  if (state.specId) {
+    const gitConfig = resolveGitConfig(config);
+    const branch = await getCurrentBranch(projectRoot).catch(() => 'unknown');
+    const matchesConfigured = branch.startsWith(gitConfig.branchPrefix)
+      && branch.slice(gitConfig.branchPrefix.length) === state.specId;
+    const matchesLegacy = gitConfig.branchPrefix !== 'spec/'
+      && branch.startsWith('spec/') && branch.slice(5) === state.specId;
+    if (matchesConfigured || matchesLegacy) {
+      state.branch = branch;
     }
   }
 
-  // 2. Check git tags to determine completed stages
-  const completedStages = await getCompletedStagesFromTags(projectRoot);
+  // 2. Check git tags to determine completed stages (scoped by specId)
+  const completedStages = state.specId
+    ? await getCompletedStagesFromTags(projectRoot, state.specId)
+    : new Set<string>();
 
   // 3. Check committed spec files to infer progress
   const specFiles = state.specId
@@ -209,8 +212,8 @@ async function recoverState(
   return state;
 }
 
-async function getCompletedStagesFromTags(projectRoot: string): Promise<Set<string>> {
-  const result = await execa('git', ['tag', '-l', 'steel/*-complete'], {
+async function getCompletedStagesFromTags(projectRoot: string, specId: string): Promise<Set<string>> {
+  const result = await execa('git', ['tag', '-l', `steel/${specId}/*-complete`], {
     cwd: projectRoot,
     reject: false,
     stdin: 'ignore',
@@ -218,8 +221,8 @@ async function getCompletedStagesFromTags(projectRoot: string): Promise<Set<stri
   const tags = result.stdout.trim().split('\n').filter(Boolean);
   const stages = new Set<string>();
   for (const tag of tags) {
-    // e.g., "steel/specification-complete" → "specification"
-    const match = tag.match(/^steel\/(.+)-complete$/);
+    // e.g., "steel/003-foo/specification-complete" → "specification"
+    const match = tag.match(/^steel\/[^/]+\/(.+)-complete$/);
     if (match) stages.add(match[1]);
   }
   return stages;
@@ -281,7 +284,10 @@ export async function advanceStage(
     }
   }
 
-  await tagStage(state.currentStage, projectRoot);
+  if (!state.specId) {
+    throw new Error('Cannot tag stage completion: specId is not set');
+  }
+  await tagStage(state.specId, state.currentStage, projectRoot);
 
   // Advance
   state.stages[state.currentStage].status = 'complete';

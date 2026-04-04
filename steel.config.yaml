@@ -13,3 +13,10 @@ gauge:
 maxIterations: 5      # Max forge-gauge loop iterations per stage
 autoCommit: true      # Auto-commit each forge/gauge step
 specsDir: specs       # Directory for spec artifacts
+
+# Git branching configuration
+# git:
+#   workflow: steel       # steel | github-flow | gitflow
+#   branchPrefix: spec/   # Prefix for feature branches (e.g. spec/, feature/, eda-)
+#   baseBranch: main      # Base branch to create feature branches from
+#   # developBranch: develop  # Required for gitflow workflow

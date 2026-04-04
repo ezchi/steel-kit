@@ -5,6 +5,22 @@ import { select } from '@inquirer/prompts';
 import { parse as parseYaml } from 'yaml';
 import { log } from './utils.js';
 
+export type GitWorkflow = 'steel' | 'github-flow' | 'gitflow';
+
+export interface GitConfig {
+  workflow?: GitWorkflow;
+  branchPrefix?: string;
+  baseBranch?: string;
+  developBranch?: string;
+}
+
+export interface ResolvedGitConfig {
+  workflow: GitWorkflow;
+  branchPrefix: string;
+  baseBranch: string;
+  developBranch?: string;
+}
+
 export interface ProviderConfig {
   provider: string;
   model?: string;
@@ -16,6 +32,7 @@ export interface SteelConfig {
   maxIterations: number;
   autoCommit: boolean;
   specsDir: string;
+  git?: GitConfig;
 }
 
 const DEFAULT_CONFIG: SteelConfig = {
@@ -92,6 +109,29 @@ export async function loadConfig(projectRoot: string): Promise<SteelConfig> {
     config.maxIterations = parseInt(process.env.STEEL_MAX_ITERATIONS, 10);
   }
 
+  // Git env var overrides
+  const gitEnv: Partial<GitConfig> = {};
+  if (process.env.STEEL_GIT_WORKFLOW) {
+    const val = process.env.STEEL_GIT_WORKFLOW;
+    if (['steel', 'github-flow', 'gitflow'].includes(val)) {
+      gitEnv.workflow = val as GitWorkflow;
+    } else {
+      log.warn(`STEEL_GIT_WORKFLOW='${val}' is not a valid workflow preset; ignoring`);
+    }
+  }
+  if (process.env.STEEL_GIT_BRANCH_PREFIX) {
+    gitEnv.branchPrefix = process.env.STEEL_GIT_BRANCH_PREFIX;
+  }
+  if (process.env.STEEL_GIT_BASE_BRANCH) {
+    gitEnv.baseBranch = process.env.STEEL_GIT_BASE_BRANCH;
+  }
+  if (process.env.STEEL_GIT_DEVELOP_BRANCH) {
+    gitEnv.developBranch = process.env.STEEL_GIT_DEVELOP_BRANCH;
+  }
+  if (Object.keys(gitEnv).length > 0) {
+    config.git = { ...(config.git ?? {}), ...gitEnv };
+  }
+
   return config;
 }
 
@@ -108,12 +148,13 @@ function mergeConfig(base: SteelConfig, override: Partial<any>): SteelConfig {
     maxIterations: override.maxIterations ?? base.maxIterations,
     autoCommit: override.autoCommit ?? base.autoCommit,
     specsDir: override.specsDir ?? base.specsDir,
+    git: { ...(base.git ?? {}), ...(override.git ?? {}) },
   };
 }
 
 export async function initConfig(
   projectRoot: string,
-  opts?: { skipWrite?: boolean },
+  opts?: { skipWrite?: boolean; deferWrite?: boolean },
 ): Promise<SteelConfig> {
   const forgeProvider = await select({
     message: 'Select Forge (primary) LLM provider:',
@@ -131,7 +172,9 @@ export async function initConfig(
     gauge: { provider: gaugeProvider },
   };
 
-  if (!opts?.skipWrite) {
+  if (opts?.deferWrite) {
+    // Return config without writing or logging
+  } else if (!opts?.skipWrite) {
     const steelDir = getSteelDir(projectRoot);
     await mkdir(steelDir, { recursive: true });
     await writeFile(getConfigPath(projectRoot), JSON.stringify(config, null, 2));

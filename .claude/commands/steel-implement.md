@@ -1,16 +1,21 @@
 Implement all tasks using the Forge-Gauge loop. This is the stage where actual code gets written.
 
 ## Prerequisites
+- `.steel/constitution.md` must contain a real project constitution, not the placeholder template
 - `.steel/state.json` currentStage must be `implementation`
 - `.steel/tasks.json` must exist
 
 ## Steps
+
+0. Run `/clear` to clear the conversation context before starting this stage.
 
 1. Read `.steel/state.json`, `.steel/config.json`, and `.steel/tasks.json`. Verify stage is `implementation`.
 
 2. Read `specs/<specId>/spec.md`, `specs/<specId>/plan.md`, and `.steel/constitution.md` for context.
 
 3. **FOR EACH TASK** in `.steel/tasks.json`:
+
+   **CRITICAL — NO SKIPPING GAUGE:** Batching multiple tasks into a single forge iteration is allowed, but every task MUST receive a Gauge code review with a VERDICT before the implementation stage can advance. Each task must have its own `taskN-iterM-gauge.md` artifact. Do NOT skip the Gauge review for any task, regardless of how simple it appears. If tasks were batched in forge, run a separate Gauge review for each task in the batch. A task without a Gauge APPROVE verdict is not complete.
 
    Show: `=== Task N/total: <title> ===`
 
@@ -66,8 +71,9 @@ Implement all tasks using the Forge-Gauge loop. This is the stage where actual c
       - The test files and their content
 
    f. Call the Gauge LLM for code review. **IMPORTANT: Run the command from the project's working directory, NOT /tmp.**
-      - If gauge is `gemini`: run `gemini -p "<code review prompt>"` in the current project directory
-      - If gauge is `codex`: run `codex exec "<code review prompt>"` in the current project directory
+      - Write the full code review prompt to a file at `specs/<specId>/artifacts/implementation/taskN-iterM-gauge-prompt.md`
+      - If gauge is `gemini`: run `gemini "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
+      - If gauge is `codex`: run `codex exec "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
       - If gauge is `claude`: Switch to Gauge role and perform a thorough code review yourself. Be strict.
 
       The Gauge code review must check:
@@ -94,7 +100,7 @@ Implement all tasks using the Forge-Gauge loop. This is the stage where actual c
 
 4. After all tasks done, auto-advance to `validation` stage. **No human approval needed.**
 
-5. Update `.steel/state.json`, tag `steel/implementation-complete`.
+5. Update `.steel/state.json`, tag `steel/<specId>/implementation-complete`.
 
 6. **Track skills used**: Update `.steel/state.json` field `skillsUsed.implementation` with an array of ALL skill names you invoked during this stage (across all tasks). For example: `["systemverilog-core", "sv-gen", "cocotb-verilator-tests", "verilator-cmake"]`. If no skills were used, set it to `[]`.
 
