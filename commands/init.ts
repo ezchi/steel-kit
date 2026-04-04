@@ -270,7 +270,7 @@ async function cleanupStaleGeminiCommands(projectRoot: string): Promise<void> {
     for (const file of staleFiles) {
       await unlink(resolve(geminiDir, file));
     }
-    log.info(`Removed ${staleFiles.length} stale .gemini/commands/ TOML files`);
+    log.info(`Removed ${staleFiles.length} stale Gemini TOML command files`);
   } catch {
     // Best-effort cleanup — don't fail init
   }
