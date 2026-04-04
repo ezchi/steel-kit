@@ -45,6 +45,9 @@ export async function cmdInit(): Promise<void> {
   }
   await mkdir(steelDir, { recursive: true });
 
+  // Track files actually written for targeted commit
+  const writtenPaths: string[] = [];
+
   // Create .steel/.gitignore to exclude ephemeral working state
   const steelGitignore = resolve(steelDir, '.gitignore');
   if (await shouldWriteFile(steelGitignore)) {
@@ -55,6 +58,7 @@ state.json
 tasks.json
 `,
     );
+    writtenPaths.push(steelGitignore);
   }
 
   // Interactive config setup
@@ -68,6 +72,7 @@ tasks.json
 
   // Merge and write config — preserving existing keys on re-init
   const config = await mergeAndWriteConfig(configPath, baseConfig, gitSettings);
+  writtenPaths.push(configPath);
 
   // Verify providers are available
   log.info('Checking LLM provider availability...');
@@ -96,17 +101,22 @@ tasks.json
   if (await shouldWriteFile(constitutionPath)) {
     await writeFile(constitutionPath, PLACEHOLDER_CONSTITUTION);
     log.success('Created .steel/constitution.md (edit this to define your project principles)');
+    writtenPaths.push(constitutionPath);
   }
 
   // Install project commands for supported CLIs
-  await installSlashCommands(projectRoot);
+  const installResult = await installSlashCommands(projectRoot);
+  if (installResult) {
+    writtenPaths.push(...installResult);
+  }
 
   const statePath = resolve(steelDir, 'state.json');
   if (await shouldWriteFile(statePath)) {
     await saveState(projectRoot, state);
+    // state.json is gitignored — don't add to writtenPaths
   }
 
-  // Git commit — only stage files written by steel-kit init
+  // Git commit — only stage files actually written by this init run
   log.info('Committing initialization...');
   if (config.autoCommit) {
     await commitStep(
@@ -115,7 +125,7 @@ tasks.json
       1,
       'initialize project',
       projectRoot,
-      [steelDir, '.claude/commands', '.gemini/commands', '.agents/skills'],
+      writtenPaths,
     );
   }
 
@@ -219,7 +229,7 @@ async function mergeAndWriteConfig(
   };
 }
 
-async function installSlashCommands(projectRoot: string): Promise<void> {
+async function installSlashCommands(projectRoot: string): Promise<string[] | null> {
   try {
     const result = await installProjectCommands(projectRoot);
     log.success(
@@ -232,8 +242,15 @@ async function installSlashCommands(projectRoot: string): Promise<void> {
     for (const warning of result.warnings) {
       log.warn(`Command install warning: ${warning}`);
     }
+    // Return directories that were actually written to
+    const dirs: string[] = [];
+    if (result.claude > 0) dirs.push(resolve(projectRoot, '.claude', 'commands'));
+    if (result.gemini > 0) dirs.push(resolve(projectRoot, '.gemini', 'commands'));
+    if (result.codex > 0) dirs.push(resolve(projectRoot, '.agents', 'skills'));
+    return dirs.length > 0 ? dirs : null;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     log.warn(`Command installation skipped: ${message}`);
+    return null;
   }
 }

@@ -69,8 +69,13 @@ export async function commitStep(
 
   log.debug(`Staging and committing: ${fullMessage}`);
 
-  // Stage only the files touched by steel-kit, or all changes if no paths specified
-  if (paths && paths.length > 0) {
+  // Stage only the files touched by steel-kit, or all changes if no paths specified.
+  // paths=undefined → git add -A (e.g. implementation stage)
+  // paths=[]       → nothing to stage
+  // paths=[...]    → stage only listed paths
+  if (paths !== undefined && paths.length === 0) {
+    // Explicit empty list — nothing to stage
+  } else if (paths && paths.length > 0) {
     // Partition into paths that exist on disk vs deleted tracked paths
     const onDisk: string[] = [];
     const removed: string[] = [];
