@@ -1,5 +1,5 @@
 {
-  "currentStage": "planning",
+  "currentStage": "retrospect",
   "iteration": 1,
   "specId": "002-configurable-git-branching",
   "branch": "spec/002-configurable-git-branching",
@@ -14,25 +14,32 @@
       "iteration": 4
     },
     "planning": {
-      "status": "pending"
+      "status": "complete",
+      "iteration": 5
     },
     "task_breakdown": {
-      "status": "pending"
+      "status": "complete",
+      "iteration": 5
     },
     "implementation": {
-      "status": "pending"
+      "status": "complete",
+      "completedAt": "2026-04-04T11:16:00.000Z",
+      "iteration": 3
     },
     "validation": {
-      "status": "pending"
+      "status": "complete",
+      "completedAt": "2026-04-04T11:22:00.000Z",
+      "iteration": 2
     },
     "retrospect": {
-      "status": "pending"
+      "status": "complete",
+      "completedAt": "2026-04-04T11:23:00.000Z",
+      "iteration": 1
     }
   },
   "skillsUsed": {
     "specification": [],
     "clarification": [],
-
     "planning": [],
     "task_breakdown": [],
     "implementation": [],
