@@ -154,11 +154,15 @@ async function recoverState(
   const { resolveSpecId, resolveGitConfig } = await import('./git-config.js');
   state.specId = (await resolveSpecId(projectRoot, config)) ?? undefined;
 
-  // Set branch if specId was derived from it
+  // Only set branch if the current branch actually derived the specId
   if (state.specId) {
     const gitConfig = resolveGitConfig(config);
     const branch = await getCurrentBranch(projectRoot).catch(() => 'unknown');
-    if (branch.startsWith(gitConfig.branchPrefix) || branch.startsWith('spec/')) {
+    const matchesConfigured = branch.startsWith(gitConfig.branchPrefix)
+      && branch.slice(gitConfig.branchPrefix.length) === state.specId;
+    const matchesLegacy = gitConfig.branchPrefix !== 'spec/'
+      && branch.startsWith('spec/') && branch.slice(5) === state.specId;
+    if (matchesConfigured || matchesLegacy) {
       state.branch = branch;
     }
   }
@@ -280,7 +284,10 @@ export async function advanceStage(
     }
   }
 
-  await tagStage(state.specId ?? 'unknown', state.currentStage, projectRoot);
+  if (!state.specId) {
+    throw new Error('Cannot tag stage completion: specId is not set');
+  }
+  await tagStage(state.specId, state.currentStage, projectRoot);
 
   // Advance
   state.stages[state.currentStage].status = 'complete';
