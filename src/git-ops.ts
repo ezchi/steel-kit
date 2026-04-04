@@ -74,7 +74,8 @@ export async function commitStep(
   // paths=[]       → nothing to stage
   // paths=[...]    → stage only listed paths
   if (paths !== undefined && paths.length === 0) {
-    // Explicit empty list — nothing to stage
+    log.debug('No paths to commit, skipping');
+    return;
   } else if (paths && paths.length > 0) {
     // Partition into paths that exist on disk vs deleted tracked paths
     const onDisk: string[] = [];
