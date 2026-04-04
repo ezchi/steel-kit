@@ -1,49 +1,35 @@
 {
-  "currentStage": "retrospect",
+  "currentStage": "specification",
   "iteration": 1,
-  "specId": "002-configurable-git-branching",
-  "branch": "spec/002-configurable-git-branching",
-  "description": "Add configurable git branching workflow support (gitflow, GitHub Flow, custom prefixes, --id flag)",
+  "specId": "003-namespace-git-tags-by-specid",
+  "branch": "spec/003-namespace-git-tags-by-specid",
+  "description": "Namespace git tags by specId to prevent tag collisions across specs",
   "stages": {
     "specification": {
-      "status": "complete",
-      "iteration": 5
+      "status": "in_progress",
+      "iteration": 1
     },
     "clarification": {
-      "status": "complete",
-      "iteration": 4
+      "status": "pending",
+      "iteration": 0
     },
     "planning": {
-      "status": "complete",
-      "iteration": 5
+      "status": "pending",
+      "iteration": 0
     },
     "task_breakdown": {
-      "status": "complete",
-      "iteration": 5
+      "status": "pending",
+      "iteration": 0
     },
     "implementation": {
-      "status": "complete",
-      "completedAt": "2026-04-04T11:16:00.000Z",
-      "iteration": 3
+      "status": "pending"
     },
     "validation": {
-      "status": "complete",
-      "completedAt": "2026-04-04T11:22:00.000Z",
-      "iteration": 2
+      "status": "pending"
     },
     "retrospect": {
-      "status": "complete",
-      "completedAt": "2026-04-04T11:23:00.000Z",
-      "iteration": 1
+      "status": "pending"
     }
   },
-  "skillsUsed": {
-    "specification": [],
-    "clarification": [],
-    "planning": [],
-    "task_breakdown": [],
-    "implementation": [],
-    "validation": [],
-    "retrospect": []
-  }
+  "skillsUsed": {}
 }
