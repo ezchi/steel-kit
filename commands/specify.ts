@@ -1,4 +1,3 @@
-import { existsSync, readdirSync } from 'node:fs';
 import {
   type SteelConfig,
   getSpecsDir,
@@ -11,10 +10,15 @@ import {
   advanceStage,
 } from '../src/workflow.js';
 import { initBranch } from '../src/git-ops.js';
+import { resolveGitConfig } from '../src/git-config.js';
+import { generateSpecId } from '../src/spec-id.js';
 import { loadConstitutionIfReady } from '../src/constitution.js';
 import { log, die } from '../src/utils.js';
 
-export async function cmdSpecify(description: string): Promise<void> {
+export async function cmdSpecify(
+  description: string,
+  opts?: { id?: string },
+): Promise<void> {
   log.step(`Starting specification: "${description}"`);
   const projectRoot = process.cwd();
   log.info('Loading config and state...');
@@ -32,17 +36,20 @@ export async function cmdSpecify(description: string): Promise<void> {
 
   const constitution = await loadConstitutionIfReady(projectRoot);
 
-  const specId = generateSpecId(projectRoot, config, description);
+  const gitConfig = resolveGitConfig(config);
+
+  const specId = generateSpecId({
+    projectRoot,
+    specsDir: config.specsDir,
+    description,
+    customId: opts?.id,
+  });
   state.specId = specId;
   state.description = description;
 
-  // Create feature branch
-  try {
-    await initBranch(specId, projectRoot);
-    state.branch = `spec/${specId}`;
-  } catch {
-    log.warn('Could not create branch (may already exist), continuing on current branch');
-  }
+  // Create feature branch — fail-fast on errors
+  const branchName = await initBranch(specId, projectRoot, gitConfig);
+  state.branch = branchName;
 
   state.currentStage = 'specification';
   await saveState(projectRoot, state);
@@ -59,32 +66,4 @@ export async function cmdSpecify(description: string): Promise<void> {
   // Advance to clarification (requires human approval)
   log.step('Specification complete. Checking stage advancement...');
   await advanceStage(projectRoot, state, config);
-}
-
-function generateSpecId(
-  projectRoot: string,
-  config: SteelConfig,
-  description: string,
-): string {
-  const specsDir = getSpecsDir(projectRoot, config);
-  let nextNum = 1;
-  if (existsSync(specsDir)) {
-    const entries = readdirSync(specsDir);
-    const nums = entries
-      .map((e) => parseInt(e.split('-')[0], 10))
-      .filter((n) => !isNaN(n));
-    if (nums.length > 0) {
-      nextNum = Math.max(...nums) + 1;
-    }
-  }
-
-  // Create semantic name from description
-  const semantic = description
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .slice(0, 40);
-
-  return `${String(nextNum).padStart(3, '0')}-${semantic}`;
 }

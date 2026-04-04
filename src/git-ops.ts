@@ -1,13 +1,58 @@
 import { execa } from 'execa';
+import type { ResolvedGitConfig } from './config.js';
+import { validateComposedRef } from './git-config.js';
 import { log } from './utils.js';
 
 export async function initBranch(
   specId: string,
   projectRoot: string,
-): Promise<void> {
-  const branchName = `spec/${specId}`;
+  gitConfig: ResolvedGitConfig,
+): Promise<string> {
+  // Validate composed ref defensively
+  validateComposedRef(gitConfig.branchPrefix, specId);
+
+  // Ensure working tree is clean before switching branches
+  const clean = await ensureClean(projectRoot);
+  if (!clean) {
+    throw new Error('Working tree has uncommitted changes. Commit or stash them before creating a new spec branch.');
+  }
+
+  // Ensure baseBranch exists
+  const baseBranch = gitConfig.baseBranch;
+  const localExists = await execa('git', ['rev-parse', '--verify', baseBranch], {
+    cwd: projectRoot,
+    reject: false,
+    stdin: 'ignore',
+  });
+
+  if (localExists.exitCode !== 0) {
+    // Check if remote-tracking branch exists
+    const remoteRef = `origin/${baseBranch}`;
+    const remoteExists = await execa('git', ['rev-parse', '--verify', remoteRef], {
+      cwd: projectRoot,
+      reject: false,
+      stdin: 'ignore',
+    });
+
+    if (remoteExists.exitCode === 0) {
+      log.info(`Creating local tracking branch '${baseBranch}' from '${remoteRef}'`);
+      await execa('git', ['branch', baseBranch, remoteRef], { cwd: projectRoot, stdin: 'ignore' });
+    } else {
+      throw new Error(
+        `Branch '${baseBranch}' does not exist locally or as remote-tracking branch 'origin/${baseBranch}'`
+      );
+    }
+  }
+
+  // Checkout base branch
+  await execa('git', ['checkout', baseBranch], { cwd: projectRoot, stdin: 'ignore' });
+
+  // Create new branch
+  const branchName = `${gitConfig.branchPrefix}${specId}`;
   log.info(`Creating branch: ${branchName}`);
   await execa('git', ['checkout', '-b', branchName], { cwd: projectRoot, stdin: 'ignore' });
+
+  return branchName;
 }
 
 export async function commitStep(

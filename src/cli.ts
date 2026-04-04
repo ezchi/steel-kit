@@ -41,7 +41,8 @@ program
   .command('specify')
   .description('Create a specification from a feature description')
   .argument('<description>', 'Feature description')
-  .action(cmdSpecify);
+  .option('--id <value>', 'Custom spec identifier (e.g. Jira ticket ID)')
+  .action((description: string, opts: { id?: string }) => cmdSpecify(description, opts));
 
 program
   .command('clarify')
