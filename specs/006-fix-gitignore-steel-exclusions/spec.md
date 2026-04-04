@@ -57,7 +57,7 @@ Run `git rm --cached` on all currently-tracked files matching the new ignore pat
 - All tracked files matching `.claude/commands/steel-*.md`
 - All tracked files matching `.agents/skills/steel-*/`
 
-The specific files affected depend on the current repository state. The command must use glob patterns or `git ls-files` filtering rather than hard-coded file lists.
+The specific files affected depend on the current repository state. The command must use glob patterns or `git ls-files` filtering rather than hard-coded file lists. If no tracked files match the patterns, this step is a no-op — the implementation must not pass an empty argument list to `git rm --cached`.
 
 Files must remain on disk — only the git index entries are removed.
 
@@ -89,7 +89,7 @@ Since this is a git configuration change (no runtime code), no unit tests are ne
 - **V-6:** `git check-ignore .steel/config.json` returns the path (confirmed ignored).
 - **V-7:** `git check-ignore .claude/commands/steel-init.md` returns the path (confirmed ignored).
 - **V-8:** `git check-ignore .agents/skills/steel-init/SKILL.md` returns the path (confirmed ignored).
-- **V-9:** Existing `doctor.test.ts` and `clean.test.ts` tests that reference `.steel/.gitignore` content must still pass (`npm test`). If the test fixtures hard-code the old `.steel/.gitignore` content (`state.json\ntasks.json`), they should be updated to match the new content or made content-agnostic.
+- **V-9:** Existing `doctor.test.ts` and `clean.test.ts` tests must still pass (`npm test`). These tests create isolated temp directories with their own `.steel/.gitignore` fixtures (content: `'state.json'`). No test asserts content parity with the production `.steel/.gitignore`, and the doctor check only verifies file existence, not content. Tests pass without changes.
 
 ## Acceptance Criteria
 
@@ -101,7 +101,7 @@ Since this is a git configuration change (no runtime code), no unit tests are ne
 
 ## Out of Scope
 
-- Modifying `steel-init` command logic to prevent it from staging generated files (separate follow-up).
+- Modifying `steel-init` command logic to prevent it from staging generated files (separate follow-up). Note: `commands/init.ts` currently writes the old `.steel/.gitignore` content (`state.json\ntasks.json`). A re-init with overwrite will regress FR-2's defense-in-depth content, but root `.gitignore` (FR-1) remains the primary defense and is unaffected by re-init.
 - Adding `.steel/` entries to a global gitignore.
 - Changes to Gemini CLI surfaces (already removed in spec 005; no `.gemini/` directory or tracked files exist).
 
