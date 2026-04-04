@@ -106,7 +106,7 @@ tasks.json
     await saveState(projectRoot, state);
   }
 
-  // Git commit
+  // Git commit — only stage files written by steel-kit init
   log.info('Committing initialization...');
   if (config.autoCommit) {
     await commitStep(
@@ -115,6 +115,7 @@ tasks.json
       1,
       'initialize project',
       projectRoot,
+      [steelDir, '.claude/commands', '.gemini/commands', '.agents/skills'],
     );
   }
 
