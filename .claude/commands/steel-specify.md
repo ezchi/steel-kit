@@ -13,9 +13,11 @@ Feature description: $ARGUMENTS
 
 1. Read `.steel/state.json` and `.steel/config.json`. Verify stage is `specification`.
 
-2. Generate a spec ID: count existing directories in `specs/`, increment, and create `specs/NNN-<semantic-name>/` where the name is derived from $ARGUMENTS.
+2. Generate a spec ID:
+   - If `--id <value>` was provided, use `<value>-<slugified-description>` as the spec ID (e.g. `--id PROJ-21` + "add auth" → `PROJ-21-add-auth`).
+   - Otherwise, auto-increment: count existing directories in `specs/`, increment, and create `specs/NNN-<semantic-name>/` where the name is derived from $ARGUMENTS.
 
-3. Create a git branch: `spec/NNN-<semantic-name>`
+3. Create a git branch using the configured branch prefix (from `.steel/config.json` git settings, default `spec/`). For example: `spec/NNN-<semantic-name>` or `feature/NNN-<semantic-name>` depending on config.
 
 4. Update `.steel/state.json` with `specId`, `branch`, `description`, and set `specification` status to `in_progress`.
 
