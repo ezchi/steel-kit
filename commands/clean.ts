@@ -88,14 +88,19 @@ export async function cmdClean(): Promise<void> {
   const freshState = createInitialState();
   await saveState(projectRoot, freshState);
 
-  // Git commit
+  // Git commit — only stage files touched by clean
+  // Note: stateFile and tasksFile are gitignored, so only commit artifact removals
   if (config.autoCommit) {
+    const cleanPaths = specId
+      ? [resolve(getSpecDir(projectRoot, config, specId), 'artifacts')]
+      : [];
     await commitStep(
       'steel',
       'clean',
       1,
       `remove artifacts${specId ? ` for ${specId}` : ''}`,
       projectRoot,
+      cleanPaths,
     );
   }
 

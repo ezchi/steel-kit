@@ -1,4 +1,7 @@
 node_modules/
 dist/
 *.tsbuildinfo
-.steel/
+
+# Steel-Kit generated files
+.claude/commands/steel-*
+.agents/skills/steel-*

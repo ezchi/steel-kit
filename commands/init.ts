@@ -1,4 +1,4 @@
-import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, readdir, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { input } from '@inquirer/prompts';
@@ -45,16 +45,21 @@ export async function cmdInit(): Promise<void> {
   }
   await mkdir(steelDir, { recursive: true });
 
+  // Track files actually written for targeted commit
+  const writtenPaths: string[] = [];
+
   // Create .steel/.gitignore to exclude ephemeral working state
   const steelGitignore = resolve(steelDir, '.gitignore');
   if (await shouldWriteFile(steelGitignore)) {
     await writeFile(
       steelGitignore,
       `# Ephemeral working state — do not commit
-state.json
-tasks.json
+*
+!.gitignore
+!constitution.md
 `,
     );
+    writtenPaths.push(steelGitignore);
   }
 
   // Interactive config setup
@@ -68,6 +73,7 @@ tasks.json
 
   // Merge and write config — preserving existing keys on re-init
   const config = await mergeAndWriteConfig(configPath, baseConfig, gitSettings);
+  // config.json is gitignored via the .steel/.gitignore above — don't add to writtenPaths
 
   // Verify providers are available
   log.info('Checking LLM provider availability...');
@@ -96,17 +102,26 @@ tasks.json
   if (await shouldWriteFile(constitutionPath)) {
     await writeFile(constitutionPath, PLACEHOLDER_CONSTITUTION);
     log.success('Created .steel/constitution.md (edit this to define your project principles)');
+    writtenPaths.push(constitutionPath);
+  }
+
+  // Ensure root .gitignore ignores ephemeral commands
+  const rootGitignore = await ensureRootGitignore(projectRoot);
+  if (rootGitignore) {
+    writtenPaths.push(rootGitignore);
   }
 
   // Install project commands for supported CLIs
   await installSlashCommands(projectRoot);
+  // Commands are ephemeral/local — don't add to writtenPaths
 
   const statePath = resolve(steelDir, 'state.json');
   if (await shouldWriteFile(statePath)) {
     await saveState(projectRoot, state);
+    // state.json is gitignored — don't add to writtenPaths
   }
 
-  // Git commit
+  // Git commit — only stage files actually written by this init run
   log.info('Committing initialization...');
   if (config.autoCommit) {
     await commitStep(
@@ -115,12 +130,13 @@ tasks.json
       1,
       'initialize project',
       projectRoot,
+      writtenPaths,
     );
   }
 
   log.success('Steel-Kit initialized!');
   log.info('Next steps:');
-  log.info('  1. Set up LLM auth (e.g. ANTHROPIC_API_KEY, GEMINI_API_KEY, or login)');
+  log.info('  1. Set up LLM auth (e.g. ANTHROPIC_API_KEY, or login)');
   log.info('  2. Run: steel constitution  (or edit .steel/constitution.md manually)');
   log.info('  3. Review the constitution and make sure it is project-specific');
   log.info('  4. Run: steel specify "<feature description>"');
@@ -218,21 +234,84 @@ async function mergeAndWriteConfig(
   };
 }
 
-async function installSlashCommands(projectRoot: string): Promise<void> {
+async function installSlashCommands(projectRoot: string): Promise<string[] | null> {
   try {
+    // Clean up stale Gemini TOML files from previous installations
+    await cleanupStaleGeminiCommands(projectRoot);
+
     const result = await installProjectCommands(projectRoot);
     log.success(
-      `Installed commands: Claude=${result.claude}, Gemini=${result.gemini}, Codex skills=${result.codex}`,
+      `Installed commands: Claude=${result.claude}, Agent skills=${result.codex}`,
     );
     if (result.codex > 0) {
-      log.info('Codex skills were written to `.agents/skills/`.');
-      log.info('In Codex, invoke them as `$steel-constitution`, `$steel-specify`, `$steel-plan`, and so on.');
+      log.info('Agent skills were written to `.agents/skills/`.');
     }
     for (const warning of result.warnings) {
       log.warn(`Command install warning: ${warning}`);
     }
+    // Return directories that were actually written to
+    const dirs: string[] = [];
+    if (result.claude > 0) dirs.push(resolve(projectRoot, '.claude', 'commands'));
+    if (result.codex > 0) dirs.push(resolve(projectRoot, '.agents', 'skills'));
+    return dirs.length > 0 ? dirs : null;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     log.warn(`Command installation skipped: ${message}`);
+    return null;
   }
+}
+
+async function cleanupStaleGeminiCommands(projectRoot: string): Promise<void> {
+  const geminiDir = resolve(projectRoot, '.gemini', 'commands');
+  if (!existsSync(geminiDir)) return;
+
+  try {
+    const files = await readdir(geminiDir);
+    const staleFiles = files.filter(
+      (f) => f.startsWith('steel-') && f.endsWith('.toml'),
+    );
+    if (staleFiles.length === 0) return;
+
+    for (const file of staleFiles) {
+      await unlink(resolve(geminiDir, file));
+    }
+    log.info(`Removed ${staleFiles.length} stale Gemini TOML command files`);
+  } catch {
+    // Best-effort cleanup — don't fail init
+  }
+}
+
+async function ensureRootGitignore(projectRoot: string): Promise<string | null> {
+  const gitignorePath = resolve(projectRoot, '.gitignore');
+  const rules = [
+    '.claude/commands/steel-*',
+    '.agents/skills/steel-*',
+  ];
+
+  let content = '';
+  if (existsSync(gitignorePath)) {
+    content = await readFile(gitignorePath, 'utf-8');
+  } else {
+    // If .gitignore doesn't exist, we create it and return the path
+  }
+
+  const missingRules = rules.filter((rule) => !content.includes(rule));
+  if (missingRules.length === 0) return null;
+
+  log.info('Updating root .gitignore to exclude ephemeral Steel-Kit commands...');
+
+  const header = '# Steel-Kit ephemeral commands';
+  let newContent = content;
+  if (!content.includes(header)) {
+    newContent = newContent.trim() + (newContent ? '\n\n' : '') + header + '\n';
+  }
+
+  for (const rule of missingRules) {
+    if (!newContent.includes(rule)) {
+      newContent += rule + '\n';
+    }
+  }
+
+  await writeFile(gitignorePath, newContent);
+  return '.gitignore';
 }

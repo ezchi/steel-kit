@@ -33,7 +33,7 @@ vi.mock('../src/providers/index.js', () => ({
 
 vi.mock('../src/command-installer.js', () => ({
   installProjectCommands: () =>
-    Promise.resolve({ claude: 0, gemini: 0, codex: 0, warnings: [] }),
+    Promise.resolve({ claude: 0, codex: 0, warnings: [] }),
 }));
 
 import { cmdInit } from './init.js';

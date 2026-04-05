@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { execa } from 'execa';
 import type { ResolvedGitConfig } from './config.js';
 import { validateComposedRef } from './git-config.js';
@@ -61,13 +63,46 @@ export async function commitStep(
   iteration: number,
   message: string,
   projectRoot: string,
+  paths?: string[],
 ): Promise<void> {
   const fullMessage = `${prefix}(${stage}): ${message} [iteration ${iteration}]`;
 
   log.debug(`Staging and committing: ${fullMessage}`);
 
-  // Stage all changes
-  await execa('git', ['add', '-A'], { cwd: projectRoot, stdin: 'ignore' });
+  // Stage only the files touched by steel-kit, or all changes if no paths specified.
+  // paths=undefined → git add -A (e.g. implementation stage)
+  // paths=[]       → nothing to stage
+  // paths=[...]    → stage only listed paths
+  if (paths !== undefined && paths.length === 0) {
+    log.debug('No paths to commit, skipping');
+    return;
+  } else if (paths && paths.length > 0) {
+    // Partition into paths that exist on disk vs deleted tracked paths
+    const onDisk: string[] = [];
+    const removed: string[] = [];
+    for (const p of paths) {
+      if (existsSync(resolve(projectRoot, p))) {
+        onDisk.push(p);
+      } else {
+        // Check if it was a tracked path (now deleted)
+        const tracked = await execa(
+          'git', ['ls-files', '--error-unmatch', '--', p],
+          { cwd: projectRoot, reject: false, stdin: 'ignore' },
+        );
+        if (tracked.exitCode === 0) {
+          removed.push(p);
+        }
+      }
+    }
+    if (onDisk.length > 0) {
+      await execa('git', ['add', '--', ...onDisk], { cwd: projectRoot, stdin: 'ignore' });
+    }
+    if (removed.length > 0) {
+      await execa('git', ['rm', '-r', '--cached', '--', ...removed], { cwd: projectRoot, stdin: 'ignore' });
+    }
+  } else {
+    await execa('git', ['add', '-A'], { cwd: projectRoot, stdin: 'ignore' });
+  }
 
   // Check if there are staged changes
   const status = await execa('git', ['diff', '--cached', '--quiet'], {

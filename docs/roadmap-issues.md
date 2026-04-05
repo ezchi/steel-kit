@@ -11,7 +11,7 @@
 Steel-Kit now has multiple layers that can drift independently:
 
 - canonical sources in `resources/commands/`, `prompts/`, and `templates/`
-- generated agent surfaces in `.claude/commands/`, `.gemini/commands/`, `.agents/skills/`
+- generated agent surfaces in `.claude/commands/` and `.agents/skills/`
 - workflow state in `.steel/state.json`
 - constitution/spec artifacts
 - provider CLIs and auth
@@ -120,7 +120,7 @@ That separation exists partially now, but the UX and naming are still muddy.
 Clarify command model:
 
 - `steel upgrade`: update installed package version
-- `steel update` or `steel refresh`: regenerate `.claude/commands`, `.gemini/commands`, `.agents/skills`
+- `steel update` or `steel refresh`: regenerate `.claude/commands` and `.agents/skills`
 - document exactly what each command touches
 
 Consider renaming `update` to `refresh`, or adding `refresh` as the preferred alias.
@@ -267,7 +267,7 @@ Add a command such as:
 
 It should compare:
 
-- `resources/commands` vs installed `.claude/commands`, `.gemini/commands`, `.agents/skills`
+- `resources/commands` vs installed `.claude/commands` and `.agents/skills`
 - core `prompts/` and `templates/` vs `.steel/...` overrides
 
 **Acceptance Criteria**

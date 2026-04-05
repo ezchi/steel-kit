@@ -359,7 +359,10 @@ export async function runForgeGaugeLoop(
     await writeFile(forgeArtifactPath, forgeResult.output);
 
     // Update the stage output file (e.g., specs/NNN/spec.md)
-    await updateStageOutput(projectRoot, config, state, forgeResult.output);
+    const stageOutputPath = getStageOutputPath(projectRoot, config, state);
+    if (stageOutputPath) {
+      await writeFile(stageOutputPath, forgeResult.output);
+    }
 
     const reviewInput = stage === 'implementation'
       ? (await getWorkingTreeDiff(projectRoot)) ||
@@ -369,12 +372,18 @@ export async function runForgeGaugeLoop(
     // Git commit forge output
     if (config.autoCommit) {
       log.info('Committing forge output...');
+      // For implementation stage, forge modifies arbitrary source files — stage everything.
+      // For other stages, only commit the files steel-kit wrote.
+      const forgePaths = stage === 'implementation'
+        ? undefined
+        : [forgeArtifactPath, ...(stageOutputPath ? [stageOutputPath] : [])];
       await commitStep(
         'forge',
         stage,
         iter,
         `iteration ${iter} output`,
         projectRoot,
+        forgePaths,
       );
     }
 
@@ -409,6 +418,7 @@ export async function runForgeGaugeLoop(
         iter,
         `iteration ${iter} review — ${gaugeResult.verdict}`,
         projectRoot,
+        [gaugeArtifactPath],
       );
     }
 
@@ -448,33 +458,27 @@ export async function runForgeGaugeLoop(
   }
 }
 
-// -- Helper: Write stage output to the appropriate location --
+// -- Helper: Resolve the stage output file path (e.g., specs/NNN/spec.md) --
 
-async function updateStageOutput(
+const STAGE_OUTPUT_FILES: Partial<Record<StageName, string>> = {
+  specification: 'spec.md',
+  clarification: 'clarifications.md',
+  planning: 'plan.md',
+  task_breakdown: 'tasks.md',
+  validation: 'validation.md',
+  retrospect: 'retrospect.md',
+};
+
+function getStageOutputPath(
   projectRoot: string,
   config: SteelConfig,
   state: WorkflowState,
-  output: string,
-): Promise<void> {
-  const stage = state.currentStage;
+): string | null {
   const specId = state.specId;
+  if (!specId) return null;
 
-  if (!specId) return;
+  const filename = STAGE_OUTPUT_FILES[state.currentStage];
+  if (!filename) return null;
 
-  const specDir = getSpecDir(projectRoot, config, specId);
-  await mkdir(specDir, { recursive: true });
-
-  const fileMap: Partial<Record<StageName, string>> = {
-    specification: 'spec.md',
-    clarification: 'clarifications.md',
-    planning: 'plan.md',
-    task_breakdown: 'tasks.md',
-    validation: 'validation.md',
-    retrospect: 'retrospect.md',
-  };
-
-  const filename = fileMap[stage];
-  if (filename) {
-    await writeFile(resolve(specDir, filename), output);
-  }
+  return resolve(getSpecDir(projectRoot, config, specId), filename);
 }

@@ -71,6 +71,7 @@ export async function cmdConstitution(prompt?: string): Promise<void> {
       1,
       'generate project constitution',
       projectRoot,
+      [constitutionPath],
     );
   }
 

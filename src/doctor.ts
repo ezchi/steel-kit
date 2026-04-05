@@ -9,8 +9,7 @@ import { resolveSpecId } from './git-config.js';
 import type { WorkflowState, StageName } from './workflow.js';
 import { isPlaceholderConstitution } from './utils.js';
 import {
-  renderGeminiCommandToml,
-  renderCodexSkill,
+  renderAgentSkill,
 } from './command-installer.js';
 import { STEEL_KIT_ROOT } from './utils.js';
 
@@ -558,35 +557,20 @@ async function checkSurfaces(projectRoot: string): Promise<Diagnostic[]> {
       `Claude command ${file}`,
     );
 
-    // Gemini CLI: TOML render
-    const geminiPath = resolve(
-      projectRoot,
-      '.gemini',
-      'commands',
-      file.replace(/\.md$/, '.toml'),
-    );
-    const expectedGemini = renderGeminiCommandToml(file, canonicalContent);
-    await checkSurfaceFile(
-      diags,
-      geminiPath,
-      expectedGemini,
-      `Gemini command ${stem}.toml`,
-    );
-
-    // Codex: SKILL.md render
-    const codexPath = resolve(
+    // Agent skills: SKILL.md render (shared by Gemini CLI and Codex)
+    const skillPath = resolve(
       projectRoot,
       '.agents',
       'skills',
       stem,
       'SKILL.md',
     );
-    const expectedCodex = renderCodexSkill(file, canonicalContent);
+    const expectedSkill = renderAgentSkill(file, canonicalContent);
     await checkSurfaceFile(
       diags,
-      codexPath,
-      expectedCodex,
-      `Codex skill ${stem}/SKILL.md`,
+      skillPath,
+      expectedSkill,
+      `Agent skill ${stem}/SKILL.md`,
     );
   }
 
