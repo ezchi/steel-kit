@@ -54,8 +54,9 @@ export async function cmdInit(): Promise<void> {
     await writeFile(
       steelGitignore,
       `# Ephemeral working state — do not commit
-state.json
-tasks.json
+*
+!.gitignore
+!constitution.md
 `,
     );
     writtenPaths.push(steelGitignore);
@@ -72,7 +73,7 @@ tasks.json
 
   // Merge and write config — preserving existing keys on re-init
   const config = await mergeAndWriteConfig(configPath, baseConfig, gitSettings);
-  writtenPaths.push(configPath);
+  // config.json is gitignored via the .steel/.gitignore above — don't add to writtenPaths
 
   // Verify providers are available
   log.info('Checking LLM provider availability...');
@@ -104,11 +105,15 @@ tasks.json
     writtenPaths.push(constitutionPath);
   }
 
-  // Install project commands for supported CLIs
-  const installResult = await installSlashCommands(projectRoot);
-  if (installResult) {
-    writtenPaths.push(...installResult);
+  // Ensure root .gitignore ignores ephemeral commands
+  const rootGitignore = await ensureRootGitignore(projectRoot);
+  if (rootGitignore) {
+    writtenPaths.push(rootGitignore);
   }
+
+  // Install project commands for supported CLIs
+  await installSlashCommands(projectRoot);
+  // Commands are ephemeral/local — don't add to writtenPaths
 
   const statePath = resolve(steelDir, 'state.json');
   if (await shouldWriteFile(statePath)) {
@@ -274,4 +279,39 @@ async function cleanupStaleGeminiCommands(projectRoot: string): Promise<void> {
   } catch {
     // Best-effort cleanup — don't fail init
   }
+}
+
+async function ensureRootGitignore(projectRoot: string): Promise<string | null> {
+  const gitignorePath = resolve(projectRoot, '.gitignore');
+  const rules = [
+    '.claude/commands/steel-*',
+    '.agents/skills/steel-*',
+  ];
+
+  let content = '';
+  if (existsSync(gitignorePath)) {
+    content = await readFile(gitignorePath, 'utf-8');
+  } else {
+    // If .gitignore doesn't exist, we create it and return the path
+  }
+
+  const missingRules = rules.filter((rule) => !content.includes(rule));
+  if (missingRules.length === 0) return null;
+
+  log.info('Updating root .gitignore to exclude ephemeral Steel-Kit commands...');
+
+  const header = '# Steel-Kit ephemeral commands';
+  let newContent = content;
+  if (!content.includes(header)) {
+    newContent = newContent.trim() + (newContent ? '\n\n' : '') + header + '\n';
+  }
+
+  for (const rule of missingRules) {
+    if (!newContent.includes(rule)) {
+      newContent += rule + '\n';
+    }
+  }
+
+  await writeFile(gitignorePath, newContent);
+  return '.gitignore';
 }

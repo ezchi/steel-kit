@@ -3,8 +3,5 @@ dist/
 *.tsbuildinfo
 
 # Steel-Kit generated files
-.steel/*
-!.steel/.gitignore
-!.steel/constitution.md
 .claude/commands/steel-*
-.agents/skills/steel-*/
+.agents/skills/steel-*
