@@ -72,10 +72,10 @@ SOURCE_WORKTREE=""
 if [[ -n "$SOURCE_DIR" ]]; then
   SOURCE_WORKTREE="$SOURCE_DIR"
   LOCAL_SOURCE=true
-elif [[ -f "./package.json" && -f "./dist/src/cli.js" && -d "./resources" ]]; then
+elif [[ -f "./package.json" && -d "./src" && -d "./resources" ]]; then
   SOURCE_WORKTREE="$(pwd)"
   LOCAL_SOURCE=true
-elif [[ -f "$SCRIPT_DIR/package.json" && -f "$SCRIPT_DIR/dist/src/cli.js" && -d "$SCRIPT_DIR/resources" ]]; then
+elif [[ -f "$SCRIPT_DIR/package.json" && -d "$SCRIPT_DIR/src" && -d "$SCRIPT_DIR/resources" ]]; then
   SOURCE_WORKTREE="$SCRIPT_DIR"
   LOCAL_SOURCE=true
 else
@@ -89,16 +89,23 @@ else
   curl -fsSL "$URL" -o "$ARCHIVE"
   tar -xzf "$ARCHIVE" -C "$TMP_DIR"
   SOURCE_WORKTREE="$(find "$TMP_DIR" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+  if [[ ! -f "$SOURCE_WORKTREE/dist/src/cli.js" ]]; then
+    LOCAL_SOURCE=true
+  fi
 fi
 
 if [[ "$LOCAL_SOURCE" == "true" ]]; then
-  echo "Building Steel-Kit from local source..."
+  if [[ ! -d "$SOURCE_WORKTREE/node_modules" ]]; then
+    echo "Installing build dependencies..."
+    (cd "$SOURCE_WORKTREE" && npm install)
+  fi
+  echo "Building Steel-Kit from source..."
   (cd "$SOURCE_WORKTREE" && npm run build)
 fi
 
 if [[ ! -f "$SOURCE_WORKTREE/dist/src/cli.js" ]]; then
   echo "Error: built CLI not found at $SOURCE_WORKTREE/dist/src/cli.js" >&2
-  echo "The install source must include committed build artifacts." >&2
+  echo "Failed to build from source." >&2
   exit 1
 fi
 
