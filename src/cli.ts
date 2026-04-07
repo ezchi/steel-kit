@@ -19,12 +19,21 @@ import { cmdUpgrade } from '../commands/upgrade.js';
 import { cmdClean } from '../commands/clean.js';
 import { cmdDoctor } from '../commands/doctor.js';
 
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJsonPath = join(__dirname, '../../package.json');
+const { version } = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+
 const program = new Command();
 
 program
   .name('steel')
   .description('Dual-agent AI development framework')
-  .version('0.7.0');
+  .version(version);
 
 program
   .command('init')
