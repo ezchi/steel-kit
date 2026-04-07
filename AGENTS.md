@@ -25,7 +25,7 @@ Vitest is the test framework. Keep tests close to the code they cover and name t
 
 ## Commit & Pull Request Guidelines
 
-Recent history uses conventional prefixes such as `fix(installer): ...`, `chore(release): ...`, and operational merges like `merge: release v0.5.1`. Follow that pattern with short imperative subjects. PRs should include the purpose, affected commands or modules, linked issues when applicable, and terminal output or screenshots when changing CLI behavior or generated artifacts.
+Recent history uses conventional prefixes such as `fix(installer): ...`, `chore(release): ...`, and operational merges like `merge: release v0.7.0`. Follow that pattern with short imperative subjects. PRs should include the purpose, affected commands or modules, linked issues when applicable, and terminal output or screenshots when changing CLI behavior or generated artifacts.
 
 ## Configuration Notes
 

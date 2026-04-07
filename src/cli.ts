@@ -19,12 +19,16 @@ import { cmdUpgrade } from '../commands/upgrade.js';
 import { cmdClean } from '../commands/clean.js';
 import { cmdDoctor } from '../commands/doctor.js';
 
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const pkg = require('../../package.json') as { version: string };
+
 const program = new Command();
 
 program
   .name('steel')
   .description('Dual-agent AI development framework')
-  .version('0.5.1');
+  .version(pkg.version);
 
 program
   .command('init')
