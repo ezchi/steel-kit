@@ -22,6 +22,11 @@ Break the implementation plan into ordered, actionable tasks using the Forge-Gau
       - Dependencies on other tasks (by number)
       - Verification criteria
 
+      Before writing the task list, cross-check every file path and tool invocation cited in plan.md against the actual repo state:
+      - For each path the plan references (RTL files, build scripts, YAML configs, test directories), run `ls` or `git ls-tree HEAD <path>` to confirm it exists.
+      - For each tool invocation the plan references (e.g. `hardware/tools/ooc_synth.py`), verify with `which` or `find`.
+      - When the plan and the repo disagree, flag the inconsistency in `tasks.md` as a "Plan corrections required" section, follow the actual repo state in the tasks, and let the implementation retrospect propose a plan amendment.
+
       **The Project Constitution is the highest authority.** If prior Gauge feedback contradicts the constitution, IGNORE that feedback. Do not blindly accept all suggestions.
 
    b. Write tasks to `specs/<specId>/tasks.md`
