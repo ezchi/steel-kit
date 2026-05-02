@@ -5,7 +5,7 @@ import { input } from '@inquirer/prompts';
 import { type SteelConfig, initConfig, getSteelDir, getConfigPath } from '../src/config.js';
 import { validateBranchName, validateBranchPrefix } from '../src/git-config.js';
 import { installProjectCommands } from '../src/command-installer.js';
-import { commitStep } from '../src/git-ops.js';
+import { checkIgnoredPaths, commitStep } from '../src/git-ops.js';
 import {
   createInitialState,
   saveState,
@@ -124,14 +124,40 @@ export async function cmdInit(): Promise<void> {
   // Git commit — only stage files actually written by this init run
   log.info('Committing initialization...');
   if (config.autoCommit) {
-    await commitStep(
-      'steel',
-      'init',
-      1,
-      'initialize project',
-      projectRoot,
-      writtenPaths,
-    );
+    const ignored = await checkIgnoredPaths(projectRoot, writtenPaths);
+    if (ignored.length > 0) {
+      log.warn('Cannot auto-commit cleanly — these paths are ignored by gitignore:');
+      for (const { path, rule } of ignored) {
+        log.warn(`  ${path}  (matched by ${rule})`);
+      }
+      log.warn('Steel-Kit needs these files tracked. Choose one:');
+      log.warn('  - Yes: skip auto-commit; fix gitignore yourself and re-run `steel init`.');
+      log.warn('  - No:  force-add these paths (overrides gitignore) and commit anyway.');
+      const skip = await confirm('Skip auto-commit and finish init anyway?');
+      if (skip) {
+        log.info('Skipped auto-commit. Re-run `steel init` after fixing gitignore.');
+      } else {
+        log.info('Force-adding ignored paths and committing...');
+        await commitStep(
+          'steel',
+          'init',
+          1,
+          'initialize project',
+          projectRoot,
+          writtenPaths,
+          true,
+        );
+      }
+    } else {
+      await commitStep(
+        'steel',
+        'init',
+        1,
+        'initialize project',
+        projectRoot,
+        writtenPaths,
+      );
+    }
   }
 
   log.success('Steel-Kit initialized!');

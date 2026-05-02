@@ -64,6 +64,7 @@ export async function commitStep(
   message: string,
   projectRoot: string,
   paths?: string[],
+  force?: boolean,
 ): Promise<void> {
   const fullMessage = `${prefix}(${stage}): ${message} [iteration ${iteration}]`;
 
@@ -73,6 +74,8 @@ export async function commitStep(
   // paths=undefined → git add -A (e.g. implementation stage)
   // paths=[]       → nothing to stage
   // paths=[...]    → stage only listed paths
+  // force=true     → pass -f to git add, overriding gitignore
+  const addFlags = force ? ['-f'] : [];
   if (paths !== undefined && paths.length === 0) {
     log.debug('No paths to commit, skipping');
     return;
@@ -95,13 +98,13 @@ export async function commitStep(
       }
     }
     if (onDisk.length > 0) {
-      await execa('git', ['add', '--', ...onDisk], { cwd: projectRoot, stdin: 'ignore' });
+      await execa('git', ['add', ...addFlags, '--', ...onDisk], { cwd: projectRoot, stdin: 'ignore' });
     }
     if (removed.length > 0) {
       await execa('git', ['rm', '-r', '--cached', '--', ...removed], { cwd: projectRoot, stdin: 'ignore' });
     }
   } else {
-    await execa('git', ['add', '-A'], { cwd: projectRoot, stdin: 'ignore' });
+    await execa('git', ['add', '-A', ...addFlags], { cwd: projectRoot, stdin: 'ignore' });
   }
 
   // Check if there are staged changes
@@ -149,6 +152,43 @@ export async function getCurrentBranch(projectRoot: string): Promise<string> {
     cwd: projectRoot,
   });
   return result.stdout.trim();
+}
+
+export interface IgnoredPath {
+  path: string;
+  rule: string;
+}
+
+export async function checkIgnoredPaths(
+  projectRoot: string,
+  paths: string[],
+): Promise<IgnoredPath[]> {
+  if (paths.length === 0) return [];
+  const result = await execa(
+    'git',
+    ['check-ignore', '-v', '--', ...paths],
+    { cwd: projectRoot, reject: false, stdin: 'ignore' },
+  );
+  // exit 0 = at least one path ignored; exit 1 = none ignored; other = error
+  if (result.exitCode === 1) return [];
+  if (result.exitCode !== 0) {
+    log.debug(
+      `git check-ignore failed (exit ${result.exitCode}): ${result.stderr.trim()}`,
+    );
+    return [];
+  }
+  // Output format per line: "<source>:<linenum>:<pattern>\t<pathname>"
+  const ignored: IgnoredPath[] = [];
+  for (const line of result.stdout.split('\n')) {
+    if (!line) continue;
+    const tabIdx = line.indexOf('\t');
+    if (tabIdx === -1) continue;
+    ignored.push({
+      rule: line.slice(0, tabIdx),
+      path: line.slice(tabIdx + 1),
+    });
+  }
+  return ignored;
 }
 
 export async function getWorkingTreeDiff(projectRoot: string): Promise<string> {
