@@ -25,6 +25,7 @@ vi.mock('../src/utils.js', () => ({
 
 vi.mock('../src/git-ops.js', () => ({
   commitStep: vi.fn(),
+  checkIgnoredPaths: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('../src/providers/index.js', () => ({
