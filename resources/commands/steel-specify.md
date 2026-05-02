@@ -11,80 +11,115 @@ Feature description: $ARGUMENTS
 
 0. Run `/clear` to clear the conversation context before starting this stage.
 
-1. Read `.steel/state.json` and `.steel/config.json`. Verify stage is `specification`.
+1. Read state + config:
+   - `STATE=$(steel state get)` then verify `currentStage` is `specification`.
+   - `CONFIG=$(steel show-config)` then extract `git.baseBranch` and `git.branchPrefix`.
 
-2. Generate a spec ID:
-   - If `--id <value>` was provided, use `<value>-<slugified-description>` as the spec ID (e.g. `--id PROJ-21` + "add auth" → `PROJ-21-add-auth`).
-   - Otherwise, auto-increment: count existing directories in `specs/`, increment, and create `specs/NNN-<semantic-name>/` where the name is derived from $ARGUMENTS.
+2. Generate the spec ID:
+   - If the user passed `--id <value>`, run: `SPEC_ID=$(steel new-spec-id --description "$ARGUMENTS" --id <value>)`.
+   - Otherwise: `SPEC_ID=$(steel new-spec-id --description "$ARGUMENTS")`.
 
-3. Create a git branch using the configured branch prefix (from `.steel/config.json` git settings, default `spec/`). For example: `spec/NNN-<semantic-name>` or `feature/NNN-<semantic-name>` depending on config.
+3. **Branching policy — per-spec base branch:**
+   - `CURRENT=$(git rev-parse --abbrev-ref HEAD)`
+   - `CONFIG_BASE=<git.baseBranch from step 1>`
+   - If `CURRENT == CONFIG_BASE`: silently use `CURRENT` as the base. Skip to step 4.
+   - If `CURRENT != CONFIG_BASE`: ask the user verbatim:
+     > "Current branch is `<CURRENT>`, which differs from the project's configured base `<CONFIG_BASE>`. Create the new spec branch based on `<CURRENT>`? (y/N)"
+     - If the user declines: **abort.** Print: "Aborted. Checkout your desired base branch and re-run `/steel-specify`." Do NOT create a branch, do NOT touch state.
+     - If the user accepts: use `CURRENT` as the base.
 
-4. Update `.steel/state.json` with `specId`, `branch`, `description`, and set `specification` status to `in_progress`.
+4. Create the spec branch and record state atomically:
+   - `steel branch-init --spec-id "$SPEC_ID" --base-branch "$BASE" --description "$ARGUMENTS"`
+   - This validates the working tree is clean, validates the base branch exists, creates `<branchPrefix>$SPEC_ID` from current HEAD, and writes `state.specId`, `state.branch`, `state.baseBranch`, `state.description` into `.steel/state.json`.
+   - If `branch-init` fails (dirty tree, invalid ref, etc.), surface the error and stop.
 
-5. Read `.steel/constitution.md` for context.
+5. Mark the stage in progress: `steel state mark --stage specification --status in_progress`.
 
-6. **FORGE-GAUGE LOOP** (max iterations from config, default 5):
+6. **FORGE-GAUGE LOOP** (max iterations from `config.maxIterations`):
+
+   For each iteration `N`:
 
    ### Forge Phase (you are the Forge)
-   a. Generate a comprehensive specification document including:
-      - Overview
-      - User Stories (As a [role], I want [action], so that [benefit])
-      - Functional Requirements (FR-1, FR-2, etc.)
-      - Non-Functional Requirements
-      - Acceptance Criteria
-      - Out of Scope
-      - Open Questions (mark with [NEEDS CLARIFICATION])
+   a. Render the canonical Forge prompt:
+      ```
+      steel render-prompt --role forge --stage specification \
+        --output .steel/tmp/specify-iter${N}-forge-prompt.md \
+        ${PRIOR_GAUGE:+--feedback ${PRIOR_GAUGE}}
+      ```
+      `PRIOR_GAUGE` is the path to the previous iteration's gauge artifact (skip on iter 1).
 
-      **The Project Constitution is the highest authority.** If prior Gauge feedback contradicts the constitution, IGNORE that feedback and follow the constitution. Do not blindly accept all review suggestions.
+   b. **Read the rendered prompt and follow it as your Forge instruction.** The rendered prompt already substitutes `{{CONSTITUTION}}`, `{{BASE_BRANCH}}`, prior `{{FEEDBACK}}`, and the description. Produce the spec document content per its instructions.
 
-   b. Write the spec to `specs/NNN-<name>/spec.md`
-   c. Save a copy to `specs/<specId>/artifacts/specification/iterN-forge.md`
-   d. Git commit: `forge(specification): iteration N output [iteration N]`
+   c. Write the spec to `specs/$SPEC_ID/spec.md`.
+
+   d. Save the Forge artifact:
+      ```
+      steel save-artifact --stage specification --iter $N --role forge --content-file specs/$SPEC_ID/spec.md
+      ```
+
+   e. Commit:
+      ```
+      steel commit-step --role forge --stage specification --iter $N \
+        --msg "iteration $N output"
+      ```
 
    ### Gauge Phase
-   e. Read `.steel/config.json` to get the gauge provider.
-   f. Call the Gauge LLM to review the spec. **IMPORTANT: Run the command from the project's working directory, NOT /tmp.**
-      - Write the full review prompt to a file at `specs/<specId>/artifacts/specification/iterN-gauge-prompt.md`
-      - If gauge is `gemini`: run `gemini "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
-      - If gauge is `codex`: run `codex exec "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
-      - If gauge is `claude`: You ARE Claude, so review the spec yourself critically as the Gauge role — evaluate completeness, clarity, testability, consistency. Be strict.
+   f. Render the Gauge review prompt:
+      ```
+      FORGE_ARTIFACT=specs/$SPEC_ID/artifacts/specification/iter${N}-forge.md
+      steel render-prompt --role gauge --stage specification \
+        --review-target $FORGE_ARTIFACT \
+        --output .steel/tmp/specify-iter${N}-gauge-prompt.md
+      ```
 
-      The Gauge review prompt must include these instructions:
-      - Review for completeness, clarity, testability, consistency, feasibility
-      - Check alignment with the Project Constitution
-      - List issues with severity: BLOCKING / WARNING / NOTE
-      - End with exactly: `VERDICT: APPROVE` or `VERDICT: REVISE`
+   g. Run the Gauge **per `config.gauge.provider`**:
+      - If `claude`: **spawn a Task subagent with a fresh context** (use the `Agent` tool with `subagent_type: general-purpose`). Pass the prompt: `Read and follow the instructions in .steel/tmp/specify-iter${N}-gauge-prompt.md. Output the review markdown to stdout. End with exactly one VERDICT line.` This isolates the review from the parent session that produced the Forge output. Capture the subagent's response.
+      - If `gemini` or `codex`: `steel run-gauge --provider <name> --prompt-file .steel/tmp/specify-iter${N}-gauge-prompt.md --output specs/$SPEC_ID/artifacts/specification/iter${N}-gauge.md`.
 
-   g. Save the review to `specs/<specId>/artifacts/specification/iterN-gauge.md`
-   h. Git commit: `gauge(specification): iteration N review — <verdict> [iteration N]`
+   h. If the Gauge ran via subagent, save its output to the artifact path:
+      ```
+      steel save-artifact --stage specification --iter $N --role gauge --content "$REVIEW_TEXT"
+      ```
 
-   i. Parse the verdict: look for `VERDICT: APPROVE` or `VERDICT: REVISE` in the review.
+   i. Commit the gauge review:
+      ```
+      steel commit-step --role gauge --stage specification --iter $N \
+        --msg "iteration $N review — <VERDICT>"
+      ```
 
-   j. If **APPROVE**: mark stage complete, break the loop.
-   k. If **REVISE**: critically evaluate the feedback against the constitution, incorporate valid feedback, and loop back to Forge Phase.
+   j. **Parse the verdict** from the last 10 lines of the gauge artifact. Look for `VERDICT: APPROVE` or `VERDICT: REVISE`.
 
-7. **HUMAN APPROVAL GATE** — do not skip this.
+   k. If **APPROVE**: break the loop, go to step 7.
+   l. If **REVISE**: `steel state iter --inc`, set `PRIOR_GAUGE=specs/$SPEC_ID/artifacts/specification/iter${N}-gauge.md`, loop back to step 6a (next iter).
 
-   Ask the user: **"Approve specification and advance to clarification?"**
+   ### Max-iter cap behavior
+   m. If you hit `config.maxIterations` without APPROVE, ask the user verbatim:
+      > "Max iterations reached for specification. Continue for up to `<maxIterations>` more iterations? (y/N)"
+      - If yes: continue the loop.
+      - If no: leave stage `in_progress`, print "Stage paused. Re-run `/steel-specify` (with no description) to resume." and stop.
 
-   - If **approved**: update state to `clarification` stage, tag `steel/<specId>/specification-complete`, and go to step 8.
-   - If **rejected**: enter **Delta Clarification Mode** (step 7a).
+7. **HUMAN APPROVAL GATE** — do not skip.
 
-   ### 7a. Delta Clarification Mode
+   Ask the user verbatim: **"Approve specification and advance to clarification?"**
 
-   This mode processes ONLY the user's new feedback without re-running the full Forge-Gauge loop on already-approved content.
+   - If **approved**: `steel state mark --stage specification --status complete`, `steel tag-stage --stage specification`, `steel state advance-stage`. Continue to step 9.
+   - If **rejected**: enter **Delta Clarification Mode** (step 8).
 
-   1. **Collect feedback**: Ask the user what specific changes they want. Record their response verbatim as `userFeedback`.
+   ### 8. Delta Clarification Mode
+
+   Process ONLY the user's new feedback without re-running the full loop on already-approved content.
+
+   1. Ask the user what specific changes they want. Record their response verbatim as `userFeedback`.
 
    2. **DELTA FORGE-GAUGE LOOP** (max iterations from config):
 
       #### Delta Forge Phase
-      a. Read the current `specs/<specId>/spec.md`. This is the approved baseline — do NOT regenerate it from scratch.
-      b. Address ONLY the items in `userFeedback`. For each feedback item:
-         - Identify the specific section(s) of spec.md affected
-         - Make targeted edits to those sections only
-         - Do NOT rewrite, reorder, or "improve" sections the user did not mention
-      c. Save delta to `specs/<specId>/artifacts/specification/iterN-delta-forge.md` with this structure:
+      a. Read the current `specs/$SPEC_ID/spec.md` — this is the approved baseline; do NOT regenerate from scratch.
+      b. Address ONLY the items in `userFeedback`. For each item:
+         - Identify the section(s) of `spec.md` affected.
+         - Make targeted edits to those sections only.
+         - Do NOT rewrite, reorder, or "improve" sections the user did not mention.
+      c. Save the delta to `specs/$SPEC_ID/artifacts/specification/iter${N}-delta-forge.md`:
          ```markdown
          # Delta Revision — Iteration N
 
@@ -95,32 +130,22 @@ Feature description: $ARGUMENTS
          (for each change: which section, what changed, why)
 
          ## Sections NOT Modified
-         (list sections that were already approved and left untouched)
+         (sections left untouched)
          ```
-      d. Git commit: `forge(specification): delta iteration N [delta N]`
+      d. Commit: `steel commit-step --role forge --stage specification --iter $N --msg "delta iteration $N"`.
 
       #### Delta Gauge Phase
-      e. The Gauge reviews ONLY the delta — not the entire spec from scratch. Provide the Gauge with:
-         - The user's feedback (what was requested)
-         - The diff of changes made (before → after for each modified section)
-         - The full updated spec.md (for context, but the review focuses on the delta)
+      e. The Gauge reviews ONLY the delta. Build a review prompt that includes:
+         - The user's feedback (what was requested).
+         - The diff of changes made (before → after for each modified section).
+         - The full updated `spec.md` (for context only; review focuses on the delta).
+      f. Same Gauge invocation pattern as step 6g (Task subagent if claude, else `steel run-gauge`).
+      g. Save: `steel save-artifact --stage specification --iter $N --role gauge --content-file ...`.
+      h. Commit: `steel commit-step --role gauge --stage specification --iter $N --msg "delta iteration $N review — <VERDICT>"`.
+      i. If **REVISE**: fix only the disputed items, loop back. If **APPROVE**: exit delta loop.
 
-         The Gauge MUST check:
-         1. Does each change correctly address the corresponding user feedback item?
-         2. Were any unrelated sections modified? (If so: REVISE)
-         3. Are the changes consistent with the rest of the spec and the constitution?
-         4. Is any user feedback item left unaddressed?
+   3. Return to step 7 — ask the user again: **"Approve specification and advance to clarification?"**
 
-         End with `VERDICT: APPROVE` or `VERDICT: REVISE`.
+9. **Track skills used**: `steel state set-skills --stage specification --skills <skill-names>`. If no skills were used, pass `--skills` with an empty list (skip the flag entirely if your CLI requires at least one — in that case use `none` as the placeholder).
 
-      f. Save review to `specs/<specId>/artifacts/specification/iterN-delta-gauge.md`
-      g. Git commit: `gauge(specification): delta iteration N review — <verdict> [delta N]`
-      h. If **REVISE**: Forge fixes only the disputed items, loop back to Delta Forge Phase.
-      i. If **APPROVE**: exit delta loop.
-
-   3. Return to the approval gate (step 7) — ask the user again: **"Approve specification and advance to clarification?"**
-      The user may approve, or reject again with new feedback (re-entering Delta Clarification Mode).
-
-8. **Track skills used**: Update `.steel/state.json` field `skillsUsed.specification` with an array of skill names you invoked during this stage (e.g., `["systemverilog-core", "sv-gen"]`). If no skills were used, set it to `[]`.
-
-9. Show a summary of the specification.
+10. Show a summary of the specification (use `steel status` for the workflow view).

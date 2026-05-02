@@ -47,9 +47,21 @@ export async function cmdSpecify(
   state.specId = specId;
   state.description = description;
 
-  // Create feature branch — fail-fast on errors
-  const branchName = await initBranch(specId, projectRoot, gitConfig);
+  // Create feature branch — fail-fast on errors.
+  // CLI path forks from the project default base branch; the slash-command
+  // path makes the same call after first prompting the user when current
+  // branch differs from the configured base.
+  const { branchName, baseBranch } = await initBranch(
+    {
+      specId,
+      baseBranch: gitConfig.baseBranch,
+      branchPrefix: gitConfig.branchPrefix,
+      from: gitConfig.baseBranch,
+    },
+    projectRoot,
+  );
   state.branch = branchName;
+  state.baseBranch = baseBranch;
 
   state.currentStage = 'specification';
   await saveState(projectRoot, state);

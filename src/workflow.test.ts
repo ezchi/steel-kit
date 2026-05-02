@@ -85,6 +85,120 @@ describe('loadState recovery', () => {
   });
 });
 
+describe('loadState schema additions', () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = makeTempDir();
+  });
+
+  afterEach(() => {
+    if (existsSync(tempDir)) {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('round-trips baseBranch and skillsUsed when present in state.json', async () => {
+    writeFile(tempDir, '.steel/config.json', JSON.stringify({
+      forge: { provider: 'codex' },
+      gauge: { provider: 'codex' },
+      maxIterations: 5,
+      autoCommit: true,
+      specsDir: 'specs',
+      git: { branchPrefix: 'spec/', baseBranch: 'main' },
+    }));
+    writeFile(tempDir, '.steel/state.json', JSON.stringify({
+      currentStage: 'planning',
+      iteration: 2,
+      specId: '001-foo',
+      branch: 'spec/001-foo',
+      baseBranch: 'develop',
+      description: 'Test feature',
+      stages: {
+        specification: { status: 'complete' },
+        clarification: { status: 'complete' },
+        planning: { status: 'in_progress', iteration: 2 },
+        task_breakdown: { status: 'pending' },
+        implementation: { status: 'pending' },
+        validation: { status: 'pending' },
+        retrospect: { status: 'pending' },
+      },
+      skillsUsed: {
+        specification: ['systemverilog-core'],
+        planning: ['sv-gen', 'systemverilog-core'],
+      },
+    }));
+
+    const state = await loadState(tempDir);
+    expect(state.baseBranch).toBe('develop');
+    expect(state.skillsUsed?.specification).toEqual(['systemverilog-core']);
+    expect(state.skillsUsed?.planning).toEqual(['sv-gen', 'systemverilog-core']);
+    expect(state.skillsUsed?.implementation).toBeUndefined();
+  });
+
+  it('leaves baseBranch and skillsUsed undefined when absent', async () => {
+    writeFile(tempDir, '.steel/config.json', JSON.stringify({
+      forge: { provider: 'codex' },
+      gauge: { provider: 'codex' },
+      maxIterations: 5,
+      autoCommit: true,
+      specsDir: 'specs',
+      git: { branchPrefix: 'spec/', baseBranch: 'main' },
+    }));
+    writeFile(tempDir, '.steel/state.json', JSON.stringify({
+      currentStage: 'specification',
+      iteration: 1,
+      stages: {
+        specification: { status: 'pending' },
+        clarification: { status: 'pending' },
+        planning: { status: 'pending' },
+        task_breakdown: { status: 'pending' },
+        implementation: { status: 'pending' },
+        validation: { status: 'pending' },
+        retrospect: { status: 'pending' },
+      },
+    }));
+
+    const state = await loadState(tempDir);
+    expect(state.baseBranch).toBeUndefined();
+    expect(state.skillsUsed).toBeUndefined();
+  });
+
+  it('drops malformed skillsUsed entries (non-array, non-string members)', async () => {
+    writeFile(tempDir, '.steel/config.json', JSON.stringify({
+      forge: { provider: 'codex' },
+      gauge: { provider: 'codex' },
+      maxIterations: 5,
+      autoCommit: true,
+      specsDir: 'specs',
+      git: { branchPrefix: 'spec/', baseBranch: 'main' },
+    }));
+    writeFile(tempDir, '.steel/state.json', JSON.stringify({
+      currentStage: 'specification',
+      iteration: 1,
+      stages: {
+        specification: { status: 'pending' },
+        clarification: { status: 'pending' },
+        planning: { status: 'pending' },
+        task_breakdown: { status: 'pending' },
+        implementation: { status: 'pending' },
+        validation: { status: 'pending' },
+        retrospect: { status: 'pending' },
+      },
+      skillsUsed: {
+        specification: 'not-an-array',
+        planning: ['valid'],
+        implementation: [123, 'mixed'],
+      },
+    }));
+
+    const state = await loadState(tempDir);
+    expect(state.skillsUsed?.specification).toBeUndefined();
+    expect(state.skillsUsed?.planning).toEqual(['valid']);
+    expect(state.skillsUsed?.implementation).toBeUndefined();
+  });
+});
+
 describe('tagStage namespaced format', () => {
   let tempDir: string;
 

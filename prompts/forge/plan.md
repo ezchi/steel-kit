@@ -9,6 +9,10 @@ CRITICAL: Output ONLY the Markdown document content. No conversational text, no 
 ## Project Constitution (AUTHORITATIVE — overrides conflicting review feedback)
 {{CONSTITUTION}}
 
+## Project Git Configuration
+
+The project's per-spec base branch is `{{BASE_BRANCH}}`. When you write verification gates or any commands that reference a base branch (e.g., `git diff`, `git log`, `git rev-list`, `git merge-base`), use `{{BASE_BRANCH}}` — do **not** hard-code `master` or `main`.
+
 ## Specification
 {{SPEC}}
 

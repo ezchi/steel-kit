@@ -1,107 +1,80 @@
 Implement all tasks using the Forge-Gauge loop. This is the stage where actual code gets written.
 
 ## Prerequisites
-- `.steel/constitution.md` must contain a real project constitution, not the placeholder template
-- `.steel/state.json` currentStage must be `implementation`
-- `.steel/tasks.json` must exist
+- `.steel/state.json` currentStage must be `implementation`.
+- `.steel/tasks.json` must exist.
 
 ## Steps
 
 0. Run `/clear` to clear the conversation context before starting this stage.
 
-1. Read `.steel/state.json`, `.steel/config.json`, and `.steel/tasks.json`. Verify stage is `implementation`.
+1. Verify state: `steel state get` and confirm `currentStage` is `implementation`.
+2. Read `.steel/tasks.json` to get the task list.
+3. Mark in progress: `steel state mark --stage implementation --status in_progress`.
 
-2. Read `specs/<specId>/spec.md`, `specs/<specId>/plan.md`, and `.steel/constitution.md` for context.
+4. **FOR EACH TASK** in `.steel/tasks.json`:
 
-3. **FOR EACH TASK** in `.steel/tasks.json`:
+   **CRITICAL — NO SKIPPING GAUGE:** Every task MUST receive a Gauge code review with a VERDICT before the implementation stage can advance. Each task gets its own `iter${N}-forge.md` and `iter${N}-gauge.md` artifacts (where `N` is per-task iteration). A task without a Gauge APPROVE verdict is not complete.
 
-   **CRITICAL — NO SKIPPING GAUGE:** Batching multiple tasks into a single forge iteration is allowed, but every task MUST receive a Gauge code review with a VERDICT before the implementation stage can advance. Each task must have its own `taskN-iterM-gauge.md` artifact. Do NOT skip the Gauge review for any task, regardless of how simple it appears. If tasks were batched in forge, run a separate Gauge review for each task in the batch. A task without a Gauge APPROVE verdict is not complete.
+   Show: `=== Task K/total: <title> ===`
 
-   Show: `=== Task N/total: <title> ===`
+   Reset iteration for this task: `steel state iter --reset`.
 
-   **FORGE-GAUGE LOOP** (max iterations from config):
+   **FORGE-GAUGE LOOP** (max iterations from `config.maxIterations`):
+
+   For each iteration `N`:
 
    ### Forge Phase (you are the Forge)
-   a. Implement the task:
-      - Write clean, production-quality code
-      - Follow the constitution's coding standards
-      - Handle error cases
-      - Add tests alongside the implementation
+   a. Write the current task description to a tempfile so the renderer can include it:
+      ```
+      jq -r ".[$((K-1))]" .steel/tasks.json > .steel/tmp/task${K}.json
+      ```
+   b. Render the Forge prompt:
+      ```
+      steel render-prompt --role forge --stage implementation \
+        --task .steel/tmp/task${K}.json \
+        --output .steel/tmp/impl-task${K}-iter${N}-forge-prompt.md \
+        ${PRIOR_GAUGE:+--feedback ${PRIOR_GAUGE}}
+      ```
+   c. **Read the rendered prompt and follow it.** It includes the test-pass invariant (run all tests, fix failures internally, do not yield to Gauge with failing tests unless cap is hit) and the required Forge artifact format (Files Changed / Key Decisions / Deviations from Plan / Tests Added / Test Results).
 
-      **The Project Constitution is the highest authority.** If prior Gauge feedback contradicts the constitution, IGNORE that feedback. Do not blindly accept all suggestions — critically evaluate each one.
+   d. Implement the task: write production code, run tests until green, capture results, then write the Forge artifact summary.
 
-   b. **Before handing off to the Gauge**, write `specs/<specId>/artifacts/implementation/task<N>-iterM-forge.md` with this structure:
-
-      ```markdown
-      # Task N: <title> — Forge Iteration M
-
-      ## Files Changed
-      - `path/to/file.sv` — created | modified | deleted (one-line reason)
-      - ...
-
-      ## Key Implementation Decisions
-      - Decision 1: what was chosen and why (e.g., "Used FIFO over shift register because spec requires variable depth")
-      - ...
-
-      ## Deviations from Plan
-      - Deviation 1: what differs from `plan.md` and why (e.g., "Plan called for separate reset module but combined into top-level because...")
-      - (or "None — implementation follows the plan exactly.")
-
-      ## Tests Added
-      - `path/to/test_file` — what it covers
-      - ...
+   e. Save the artifact (must use the per-task naming):
+      ```
+      ART_PATH=specs/$SPEC_ID/artifacts/implementation/task${K}-iter${N}-forge.md
+      # Write your structured artifact content to $ART_PATH (per the Forge prompt's required format)
       ```
 
-      This artifact is critical for the Gauge review and later retrospect — do not skip it.
+   f. Commit: `steel commit-step --role forge --stage implementation --iter $N --msg "task $K iteration $N output"`.
 
-   c. Git commit: `forge(implementation): task N iteration M output [iteration M]`
+   ### Gauge Phase
+   g. Render the Gauge code-review prompt (it includes git diff, full file contents, test files, etc. via the rendered template):
+      ```
+      steel render-prompt --role gauge --stage implementation \
+        --review-target $ART_PATH \
+        --task .steel/tmp/task${K}.json \
+        --output .steel/tmp/impl-task${K}-iter${N}-gauge-prompt.md
+      ```
+   h. Run gauge per `config.gauge.provider`:
+      - If `claude`: spawn a Task subagent (fresh context) with prompt: `Read and follow the instructions in .steel/tmp/impl-task${K}-iter${N}-gauge-prompt.md. Output the code review and end with exactly one VERDICT line. Do NOT re-run tests — trust the Forge's reported pass/fail status and verify claims by reading code.`
+      - Else: `steel run-gauge --provider <name> --prompt-file .steel/tmp/impl-task${K}-iter${N}-gauge-prompt.md --output specs/$SPEC_ID/artifacts/implementation/task${K}-iter${N}-gauge.md`.
+   i. If subagent path: `steel save-artifact` to the same per-task gauge path.
+   j. Commit: `steel commit-step --role gauge --stage implementation --iter $N --msg "task $K iteration $N review — <VERDICT>"`.
+   k. Parse verdict. APPROVE → break, move to next task. REVISE → `steel state iter --inc`, set `PRIOR_GAUGE`, loop.
 
-   ### Gauge Phase — CODE REVIEW
-   d. **Before calling the Gauge, prepare the code review context:**
-      - Run `git diff HEAD~1` to get the exact code changes from the forge commit
-      - Read the full content of every file that was created or modified
-      - Collect the test files and their content
+   ### Max-iter cap (per task)
+   l. On cap with no APPROVE, prompt: "Max iterations reached for task $K. Continue for `<maxIterations>` more? (y/N)".
+      - Yes: continue.
+      - No: leave stage `in_progress`. Tell the user: "Stuck on task $K. Re-run `/steel-implement` to resume." Stop.
 
-   e. **Build the Gauge review prompt** that includes ALL of the following:
-      - The task description (what was supposed to be implemented)
-      - The relevant sections of the spec and plan
-      - The Project Constitution's coding standards section
-      - **The full git diff** showing all code changes
-      - **The full content of each new/modified file** (not just the diff — the Gauge needs full context)
-      - The test files and their content
+   Show: `Task K/total complete: <title>`.
 
-   f. Call the Gauge LLM for code review. **IMPORTANT: Run the command from the project's working directory, NOT /tmp.**
-      - Write the full code review prompt to a file at `specs/<specId>/artifacts/implementation/taskN-iterM-gauge-prompt.md`
-      - If gauge is `gemini`: run `gemini "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
-      - If gauge is `codex`: run `codex exec "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
-      - If gauge is `claude`: Switch to Gauge role and perform a thorough code review yourself. Be strict.
+5. After all tasks done:
+   - `steel state mark --stage implementation --status complete`
+   - `steel tag-stage --stage implementation`
+   - `steel state advance-stage`
 
-      The Gauge code review must check:
-      1. **Correctness**: Does the code implement the task requirements? Any logic errors?
-      2. **Code quality**: Is the code clean, readable, well-structured?
-      3. **Constitution compliance**: Does the code follow ALL coding standards from the constitution?
-      4. **Security**: Any injection vulnerabilities, exposed secrets, XSS, OWASP top 10 issues?
-      5. **Error handling**: Are errors handled properly? No swallowed exceptions?
-      6. **Test coverage**: Are there tests? Do they cover key paths and edge cases?
-      7. **Performance**: Any obvious N+1 queries, unbounded loops, memory leaks?
-      8. **No scope creep**: Does the code stay within the task requirements?
-
-      List issues with severity: BLOCKING / WARNING / NOTE
-      Reference specific files and line numbers where possible.
-      End with exactly: `VERDICT: APPROVE` or `VERDICT: REVISE`
-
-   g. Save the code review to `specs/<specId>/artifacts/implementation/task<N>-iterM-gauge.md`
-   h. Git commit: `gauge(implementation): task N iteration M review — <verdict> [iteration M]`
-
-   i. If **APPROVE**: move to next task.
-   j. If **REVISE**: show the code review feedback, critically evaluate against the constitution, fix the valid issues, and loop back to Forge Phase.
-
-   Show: `Task N/total complete: <title>`
-
-4. After all tasks done, auto-advance to `validation` stage. **No human approval needed.**
-
-5. Update `.steel/state.json`, tag `steel/<specId>/implementation-complete`.
-
-6. **Track skills used**: Update `.steel/state.json` field `skillsUsed.implementation` with an array of ALL skill names you invoked during this stage (across all tasks). For example: `["systemverilog-core", "sv-gen", "cocotb-verilator-tests", "verilator-cmake"]`. If no skills were used, set it to `[]`.
+6. Track skills: `steel state set-skills --stage implementation --skills <names>` (skills used across all tasks).
 
 7. Tell the user: "Implementation complete. Run `/steel-validate` to verify."

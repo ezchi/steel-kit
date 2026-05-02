@@ -61,6 +61,8 @@ You MUST evaluate every item. Mark each as PASS / FAIL / N/A:
 - [ ] Tests cover key edge cases and error paths
 - [ ] Tests are independent and deterministic
 
+**Do NOT re-run the tests yourself.** The Forge already executed them and reported pass/fail in its artifact. Your job is to verify the *claims* about test coverage and validity by reading the test files (do they actually test what the Forge says? are there trivially-true assertions? mocked-away logic?) — not by re-executing the suite. Re-running tests is wasted effort and outside the Gauge's role.
+
 ### 7. Performance
 - [ ] No N+1 queries or unbounded loops
 - [ ] No memory leaks (event listeners, subscriptions cleaned up)

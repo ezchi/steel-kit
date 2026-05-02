@@ -44,8 +44,10 @@ export interface WorkflowState {
   iteration: number;
   specId?: string;
   branch?: string;
+  baseBranch?: string;
   description?: string;
   stages: Record<StageName, StageInfo>;
+  skillsUsed?: Partial<Record<StageName, string[]>>;
 }
 
 const STAGE_ORDER: StageName[] = [
@@ -134,13 +136,27 @@ function normalizeState(raw: any): WorkflowState {
       ? 'specification'
       : raw.currentStage;
 
+  let skillsUsed: Partial<Record<StageName, string[]>> | undefined;
+  if (raw?.skillsUsed && typeof raw.skillsUsed === 'object') {
+    skillsUsed = {};
+    for (const stage of STAGE_ORDER) {
+      const value = raw.skillsUsed[stage];
+      if (Array.isArray(value) && value.every((s) => typeof s === 'string')) {
+        skillsUsed[stage] = value;
+      }
+    }
+    if (Object.keys(skillsUsed).length === 0) skillsUsed = undefined;
+  }
+
   return {
     currentStage,
     iteration: typeof raw?.iteration === 'number' ? raw.iteration : 1,
     specId: raw?.specId,
     branch: raw?.branch,
+    baseBranch: typeof raw?.baseBranch === 'string' ? raw.baseBranch : undefined,
     description: raw?.description,
     stages,
+    skillsUsed,
   };
 }
 
@@ -342,6 +358,7 @@ export async function runForgeGaugeLoop(
       planContent: loopCtx.planContent,
       taskContent: loopCtx.taskContent,
       constitution: loopCtx.constitution,
+      baseBranch: state.baseBranch,
       priorFeedback,
       projectRoot,
     };

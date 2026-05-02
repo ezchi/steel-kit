@@ -1,5 +1,6 @@
 import { getProvider } from './providers/index.js';
 import type { SteelConfig } from './config.js';
+import { resolveGitConfig } from './git-config.js';
 import { renderTemplate } from './template.js';
 import { log } from './utils.js';
 
@@ -18,6 +19,7 @@ export interface ForgeContext {
   taskContent?: string;
   priorFeedback?: string;
   constitution?: string;
+  baseBranch?: string;
   projectRoot: string;
 }
 
@@ -26,6 +28,9 @@ export async function forgeExecute(
   ctx: ForgeContext,
 ): Promise<ForgeResult> {
   const provider = getProvider(config.forge.provider);
+
+  // Resolve base branch: prefer per-spec state.baseBranch, fall back to config default.
+  const baseBranch = ctx.baseBranch ?? resolveGitConfig(config).baseBranch;
 
   // Build template variables
   const vars: Record<string, string> = {
@@ -39,6 +44,7 @@ export async function forgeExecute(
       ? `## Prior Review Feedback\nCritically evaluate each item below. Accept feedback that improves quality and aligns with the constitution. REJECT feedback that contradicts the constitution or adds unnecessary complexity. Do NOT blindly accept all suggestions.\n\n${ctx.priorFeedback}`
       : '',
     CONSTITUTION: ctx.constitution ?? '',
+    BASE_BRANCH: baseBranch,
   };
 
   // Map stage to prompt template name

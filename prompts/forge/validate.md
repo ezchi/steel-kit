@@ -9,6 +9,10 @@ CRITICAL: Output ONLY the Markdown document content. No conversational text, no 
 ## Project Constitution (AUTHORITATIVE — overrides conflicting review feedback)
 {{CONSTITUTION}}
 
+## Project Git Configuration
+
+The project's per-spec base branch is `{{BASE_BRANCH}}`. When you write verification gates or any commands that reference a base branch (e.g., `git diff`, `git log`, `git rev-list`, `git merge-base`), use `{{BASE_BRANCH}}` — do **not** hard-code `master` or `main`.
+
 ## Specification
 {{SPEC}}
 
@@ -21,7 +25,7 @@ CRITICAL: Output ONLY the Markdown document content. No conversational text, no 
 
 Perform comprehensive validation:
 
-1. **Run all tests** and report results
+1. **Run all tests first** and capture verbatim output. If any test fails, debug and fix until green before continuing the validation report. Do NOT yield to the Gauge with failing tests unless you have hit your iteration cap (in which case include the verbatim failing output and a summary of what you tried). The Gauge will not re-run tests — the pass/fail status you report must reflect the truth.
 2. **Verify acceptance criteria**: Check each criterion from the spec
 3. **Check requirement coverage**: Map each FR/NFR to its implementation
 4. **Integration check**: Verify components work together correctly

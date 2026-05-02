@@ -1,61 +1,61 @@
 Break the implementation plan into ordered, actionable tasks using the Forge-Gauge loop.
 
 ## Prerequisites
-- `.steel/constitution.md` must contain a real project constitution, not the placeholder template
-- `.steel/state.json` currentStage must be `task_breakdown`
+- `.steel/state.json` currentStage must be `task_breakdown`.
+- `specs/<specId>/plan.md` must exist.
 
 ## Steps
 
 0. Run `/clear` to clear the conversation context before starting this stage.
 
-1. Read `.steel/state.json` and `.steel/config.json`. Verify stage is `task_breakdown`.
+1. Verify state: `steel state get` and confirm `currentStage` is `task_breakdown`.
+2. Mark in progress: `steel state mark --stage task_breakdown --status in_progress`.
 
-2. Read `specs/<specId>/spec.md`, `specs/<specId>/plan.md`, and `.steel/constitution.md`.
+3. **FORGE-GAUGE LOOP** (max iterations from `config.maxIterations`):
 
-3. **FORGE-GAUGE LOOP** (max iterations from config):
+   For each iteration `N`:
 
    ### Forge Phase (you are the Forge)
-   a. Break the plan into ordered tasks. Each task must include:
-      - Task number and title
-      - Description of what needs to be done
-      - Files to create or modify
-      - Dependencies on other tasks (by number)
-      - Verification criteria
+   a. Render the Forge prompt:
+      ```
+      steel render-prompt --role forge --stage task_breakdown \
+        --output .steel/tmp/tasks-iter${N}-forge-prompt.md \
+        ${PRIOR_GAUGE:+--feedback ${PRIOR_GAUGE}}
+      ```
+   b. **Read the rendered prompt and follow it.** Decompose the plan into ordered tasks. Each task must include: task number, title, description, files to create/modify, dependencies on other tasks (by number), verification criteria.
 
-      Before writing the task list, cross-check every file path and tool invocation cited in plan.md against the actual repo state:
-      - For each path the plan references (RTL files, build scripts, YAML configs, test directories), run `ls` or `git ls-tree HEAD <path>` to confirm it exists.
-      - For each tool invocation the plan references (e.g. `hardware/tools/ooc_synth.py`), verify with `which` or `find`.
-      - When the plan and the repo disagree, flag the inconsistency in `tasks.md` as a "Plan corrections required" section, follow the actual repo state in the tasks, and let the implementation retrospect propose a plan amendment.
+      **Cross-check the plan against repo state before writing tasks:**
+      - For each file path plan.md references, run `ls` or `git ls-tree HEAD <path>` to confirm it exists.
+      - For each tool invocation plan.md references, verify with `which` or `find`.
+      - When plan and repo disagree, flag the inconsistency in `tasks.md` under a "Plan corrections required" section, follow the actual repo state in the tasks, and let the implementation retrospect propose a plan amendment.
+      - When verification gates in plan.md reference a base branch, the rendered prompt's `{{BASE_BRANCH}}` is the per-spec value from `state.baseBranch` — preserve that exact branch name when copying gates into tasks.
 
-      **The Project Constitution is the highest authority.** If prior Gauge feedback contradicts the constitution, IGNORE that feedback. Do not blindly accept all suggestions.
-
-   b. Write tasks to `specs/<specId>/tasks.md`
-   c. Save a copy to `specs/<specId>/artifacts/task_breakdown/iterN-forge.md`
-   d. Git commit: `forge(task_breakdown): iteration N output [iteration N]`
+   c. Write tasks to `specs/$SPEC_ID/tasks.md`.
+   d. Also save a JSON version to `.steel/tasks.json` with structure: `[{ "id": 1, "title": "...", "description": "..." }, ...]`.
+   e. Save artifact: `steel save-artifact --stage task_breakdown --iter $N --role forge --content-file specs/$SPEC_ID/tasks.md`.
+   f. Commit: `steel commit-step --role forge --stage task_breakdown --iter $N --msg "iteration $N output"`.
 
    ### Gauge Phase
-   e. Call the Gauge LLM (per config) to review the task breakdown. **IMPORTANT: Run the command from the project's working directory, NOT /tmp.**
-      - Write the full review prompt to a file at `specs/<specId>/artifacts/task_breakdown/iterN-gauge-prompt.md`
-      - If gauge is `gemini`: run `gemini "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
-      - If gauge is `codex`: run `codex exec "Read and follow the instructions in <absolute-path-to-prompt-file>"` in the current project directory
-      - If gauge is `claude`: Review critically yourself as the Gauge role.
+   g. Render gauge prompt:
+      ```
+      FORGE_ART=specs/$SPEC_ID/artifacts/task_breakdown/iter${N}-forge.md
+      steel render-prompt --role gauge --stage task_breakdown \
+        --review-target $FORGE_ART \
+        --output .steel/tmp/tasks-iter${N}-gauge-prompt.md
+      ```
+   h. Run gauge per `config.gauge.provider`: Task subagent (fresh context) if `claude`, else `steel run-gauge --provider <name> --prompt-file ... --output specs/$SPEC_ID/artifacts/task_breakdown/iter${N}-gauge.md`.
+   i. If subagent path: `steel save-artifact --stage task_breakdown --iter $N --role gauge --content "$REVIEW"`.
+   j. Commit: `steel commit-step --role gauge --stage task_breakdown --iter $N --msg "iteration $N review — <VERDICT>"`.
+   k. Parse verdict. APPROVE → break. REVISE → `steel state iter --inc`, set `PRIOR_GAUGE`, loop.
 
-      Review criteria: task completeness, ordering, dependencies, granularity, constitution alignment. End with `VERDICT: APPROVE` or `VERDICT: REVISE`.
+   ### Max-iter cap
+   l. On cap, prompt the user to extend; same as in `/steel-plan`.
 
-   f. Save review to `specs/<specId>/artifacts/task_breakdown/iterN-gauge.md`
-   g. Git commit: `gauge(task_breakdown): iteration N review — <verdict> [iteration N]`
+4. Auto-advance:
+   - `steel state mark --stage task_breakdown --status complete`
+   - `steel tag-stage --stage task_breakdown`
+   - `steel state advance-stage`
 
-   h. If **APPROVE**: break loop. If **REVISE**: critically evaluate feedback against constitution, incorporate valid points, and loop.
+5. Track skills: `steel state set-skills --stage task_breakdown --skills <names>`.
 
-4. Also save a JSON version to `.steel/tasks.json` with structure:
-   ```json
-   [{ "id": 1, "title": "...", "description": "..." }, ...]
-   ```
-
-5. Auto-advance to `implementation` stage. **No human approval needed.**
-
-6. Update `.steel/state.json`, tag `steel/<specId>/task_breakdown-complete`.
-
-7. **Track skills used**: Update `.steel/state.json` field `skillsUsed.task_breakdown` with an array of skill names you invoked during this stage. If no skills were used, set it to `[]`.
-
-8. Tell the user: "Tasks ready. Run `/steel-implement` to start implementation."
+6. Tell the user: "Tasks ready. Run `/steel-implement` to start implementation."
