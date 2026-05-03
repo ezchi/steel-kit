@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execSync } from 'node:child_process';
-import { loadState } from './workflow.js';
+import { loadState, createInitialState, isCompletedWorkflow, type WorkflowState } from './workflow.js';
 import { tagStage } from './git-ops.js';
 import { resolveSpecId } from './git-config.js';
 import type { SteelConfig } from './config.js';
@@ -362,5 +362,45 @@ describe('resolveSpecId', () => {
 
     const result = await resolveSpecId(tempDir, defaultConfig);
     expect(result).toBeNull();
+  });
+});
+
+describe('isCompletedWorkflow', () => {
+  it('returns true when retrospect.status is complete', () => {
+    const state = createInitialState();
+    state.stages.retrospect.status = 'complete';
+    expect(isCompletedWorkflow(state)).toBe(true);
+  });
+
+  it('returns false when retrospect.status is in_progress', () => {
+    const state = createInitialState();
+    state.stages.retrospect.status = 'in_progress';
+    expect(isCompletedWorkflow(state)).toBe(false);
+  });
+
+  it('returns false when retrospect.status is pending', () => {
+    const state = createInitialState();
+    expect(isCompletedWorkflow(state)).toBe(false);
+  });
+
+  it('returns false (no throw) when stages.retrospect is missing', () => {
+    const state = { stages: {} } as unknown as WorkflowState;
+    expect(isCompletedWorkflow(state)).toBe(false);
+  });
+
+  it('returns false (no throw) when stages itself is missing', () => {
+    const state = {} as unknown as WorkflowState;
+    expect(isCompletedWorkflow(state)).toBe(false);
+  });
+
+  it('returns false when all earlier stages complete but retrospect is pending', () => {
+    const state = createInitialState();
+    state.stages.specification.status = 'complete';
+    state.stages.clarification.status = 'complete';
+    state.stages.planning.status = 'complete';
+    state.stages.task_breakdown.status = 'complete';
+    state.stages.implementation.status = 'complete';
+    state.stages.validation.status = 'complete';
+    expect(isCompletedWorkflow(state)).toBe(false);
   });
 });

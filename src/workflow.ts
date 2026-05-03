@@ -50,6 +50,10 @@ export interface WorkflowState {
   skillsUsed?: Partial<Record<StageName, string[]>>;
 }
 
+export function isCompletedWorkflow(state: WorkflowState): boolean {
+  return state.stages?.retrospect?.status === 'complete';
+}
+
 const STAGE_ORDER: StageName[] = [
   'specification',
   'clarification',
