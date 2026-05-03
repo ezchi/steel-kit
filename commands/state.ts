@@ -1,4 +1,5 @@
 import {
+  createInitialState,
   loadState,
   saveState,
   type StageName,
@@ -164,6 +165,18 @@ export async function cmdStateSetSkills(opts: StateSetSkillsOpts): Promise<void>
   state.skillsUsed[opts.stage as StageName] = opts.skills;
   await saveState(projectRoot, state);
   log.success(`Recorded skills for ${opts.stage}: ${opts.skills.join(', ') || '(none)'}`);
+}
+
+// `steel state reset` — replace state.json with createInitialState() output.
+// Does NOT touch specs/, .steel/tasks.json, or git tags. Used by /steel-specify
+// step 0a-y (preserve-history reset path).
+export async function cmdStateReset(): Promise<void> {
+  const projectRoot = process.cwd();
+  const fresh = createInitialState();
+  await saveState(projectRoot, fresh);
+  log.success(
+    'State reset to fresh specification:pending (prior specs/, tasks.json, and git tags are NOT touched)',
+  );
 }
 
 // Used by cli.ts to keep `WorkflowState` import surface consistent.

@@ -26,6 +26,7 @@ import {
   cmdStateAdvance,
   cmdStateMark,
   cmdStateGet,
+  cmdStateReset,
   cmdStateSetSkills,
 } from '../commands/state.js';
 
@@ -226,6 +227,13 @@ stateCmd
   .command('advance-stage')
   .description('Move currentStage forward in the workflow')
   .action(cmdStateAdvance);
+
+stateCmd
+  .command('reset')
+  .description(
+    'Reset state.json to a fresh specification:pending shape (does NOT touch specs/, tasks.json, or git tags — see /steel-clean for full reset)',
+  )
+  .action(cmdStateReset);
 
 stateCmd
   .command('mark')
