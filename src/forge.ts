@@ -41,7 +41,7 @@ export async function forgeExecute(
     PLAN: ctx.planContent ?? '',
     TASK: ctx.taskContent ?? '',
     FEEDBACK: ctx.priorFeedback
-      ? `## Prior Review Feedback\nCritically evaluate each item below. Accept feedback that improves quality and aligns with the constitution. REJECT feedback that contradicts the constitution or adds unnecessary complexity. Do NOT blindly accept all suggestions.\n\n${ctx.priorFeedback}`
+      ? `## Prior Review Feedback\nCritically evaluate each item below. Accept feedback that improves quality and aligns with the constitution. REJECT feedback that contradicts the constitution or adds unnecessary complexity. Do NOT blindly accept all suggestions.\n\nWhen you accept an item, audit EVERY site coupled to it before writing the revision: search the artifact (and any artifact it references) for every name, flag, command, or string named in the feedback, and apply the fix consistently across all matches. A single-site fix that leaves a coupled site stale introduces a NEW defect and forces another iteration.\n\n${ctx.priorFeedback}`
       : '',
     CONSTITUTION: ctx.constitution ?? '',
     BASE_BRANCH: baseBranch,
@@ -128,6 +128,7 @@ function buildFallbackPrompt(ctx: ForgeContext): string {
   if (ctx.priorFeedback) {
     parts.push(`\n## Prior Review Feedback`);
     parts.push(`Critically evaluate each item below. Accept feedback that improves quality and aligns with the constitution. REJECT feedback that contradicts the constitution or adds unnecessary complexity.`);
+    parts.push(`When you accept an item, audit EVERY site coupled to it before writing the revision: search the artifact (and any artifact it references) for every name, flag, command, or string named in the feedback, and apply the fix consistently across all matches. A single-site fix that leaves a coupled site stale introduces a NEW defect and forces another iteration.`);
     parts.push(ctx.priorFeedback);
   }
 

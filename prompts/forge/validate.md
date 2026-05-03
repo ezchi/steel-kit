@@ -23,6 +23,8 @@ The project's per-spec base branch is `{{BASE_BRANCH}}`. When you write verifica
 
 ## Instructions
 
+**Line citation discipline:** every `file:line` reference in this report MUST come from a `grep -n` (or equivalent) run against the file as it exists on disk RIGHT NOW. Never type a line number from memory or from an earlier planning artifact — files drift across tasks. Run the grep at the moment you write the citation.
+
 Perform comprehensive validation:
 
 1. **Run all tests first** and capture verbatim output. If any test fails, debug and fix until green before continuing the validation report. Do NOT yield to the Gauge with failing tests unless you have hit your iteration cap (in which case include the verbatim failing output and a summary of what you tried). The Gauge will not re-run tests — the pass/fail status you report must reflect the truth.
@@ -39,4 +41,4 @@ Produce a validation report with:
 - Issues found (if any)
 - Overall assessment
 
-8. **Self-check before finalizing**: Count the PASS/FAIL/DEFERRED verdicts in the Results tables and verify the Summary line matches exactly. For every cited line number (e.g., `file.ts:42`), grep the source file to confirm the cited line contains what you claim. Fix any mismatches before outputting the report.
+8. **Self-check before finalizing**: Count the PASS/FAIL/DEFERRED verdicts in the Results tables and verify the Summary line matches exactly. For every cited `file:line`, re-run `grep -n` against the file on disk and confirm the cited line still contains what you claim. If any citation is stale, regenerate it from the fresh grep output — do not patch the number by hand. A drifted citation forces a full revise cycle that adds zero substantive value.
