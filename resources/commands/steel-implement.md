@@ -47,13 +47,23 @@ Implement all tasks using the Forge-Gauge loop. This is the stage where actual c
    f. Commit: `steel commit-step --role forge --stage implementation --iter $N --msg "task $K iteration $N output"`.
 
    ### Gauge Phase
-   g. Render the Gauge code-review prompt (it includes git diff, full file contents, test files, etc. via the rendered template):
+   g. Render the Gauge review prompt. Branch on the task's `type` field (read from `.steel/tmp/task${K}.json`):
       ```
+      TASK_TYPE=$(jq -r '.type // "implementation"' .steel/tmp/task${K}.json)
+      if [ "$TASK_TYPE" = "verification" ]; then
+        TEMPLATE_FLAG="--template review-verification"
+      else
+        TEMPLATE_FLAG=""
+      fi
       steel render-prompt --role gauge --stage implementation \
         --review-target $ART_PATH \
         --task .steel/tmp/task${K}.json \
+        $TEMPLATE_FLAG \
         --output .steel/tmp/impl-task${K}-iter${N}-gauge-prompt.md
       ```
+      - `implementation` (default): heavy `review-code` template — full git diff, security/correctness/quality checklist.
+      - `verification`: light `review-verification` template — confirms the right command was run, the result matched the criteria, and cleanup happened. Skips security/correctness/quality sections (no source change to review).
+      - Missing or unrecognized `type` falls back to the heavy template (safe direction).
    h. Run gauge per `config.gauge.provider`:
       - If `claude`: spawn a Task subagent (fresh context) with prompt: `Read and follow the instructions in .steel/tmp/impl-task${K}-iter${N}-gauge-prompt.md. Output the code review and end with exactly one VERDICT line. Do NOT re-run tests — trust the Forge's reported pass/fail status and verify claims by reading code.`
       - Else: `steel run-gauge --provider <name> --prompt-file .steel/tmp/impl-task${K}-iter${N}-gauge-prompt.md --output specs/$SPEC_ID/artifacts/implementation/task${K}-iter${N}-gauge.md`.

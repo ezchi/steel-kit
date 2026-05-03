@@ -171,7 +171,8 @@ program
   .option('--task <path>', 'Current task description (implementation stage)')
   .option('--output <path>', 'Write rendered prompt to this file (default: stdout)')
   .option('--iteration <n>', 'Override iteration number', (v) => parseInt(v, 10))
-  .action((opts: { role: string; stage: string; feedback?: string; reviewTarget?: string; task?: string; output?: string; iteration?: number }) => {
+  .option('--template <name>', 'Override role+stage→template auto-mapping (e.g. review-verification)')
+  .action((opts: { role: string; stage: string; feedback?: string; reviewTarget?: string; task?: string; output?: string; iteration?: number; template?: string }) => {
     if (opts.role !== 'forge' && opts.role !== 'gauge') {
       throw new Error(`Invalid --role '${opts.role}'. Must be 'forge' or 'gauge'.`);
     }

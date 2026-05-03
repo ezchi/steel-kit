@@ -115,4 +115,25 @@ describe('render-prompt helper', () => {
     // captured stdout is just the path
     expect(captured.trim()).toBe(outPath);
   });
+
+  it('uses template override instead of role+stage auto-mapping', async () => {
+    setupProject(tempDir, { baseBranch: 'develop' });
+    // Project-local override for the custom gauge template.
+    writeFile(
+      tempDir,
+      '.steel/prompts/gauge/review-verification.md',
+      'CUSTOM_TEMPLATE\nFORGE_OUTPUT={{FORGE_OUTPUT}}',
+    );
+    writeFile(tempDir, '.steel/tmp/forge-art.md', 'forge artifact body');
+
+    const { cmdRenderPrompt } = await import('./render-prompt.js');
+    await cmdRenderPrompt({
+      role: 'gauge',
+      stage: 'implementation',
+      template: 'review-verification',
+      reviewTarget: resolve(tempDir, '.steel/tmp/forge-art.md'),
+    });
+    expect(captured).toContain('CUSTOM_TEMPLATE');
+    expect(captured).toContain('FORGE_OUTPUT=forge artifact body');
+  });
 });

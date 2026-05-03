@@ -20,7 +20,7 @@ Break the implementation plan into ordered, actionable tasks using the Forge-Gau
         --output .steel/tmp/tasks-iter${N}-forge-prompt.md \
         ${PRIOR_GAUGE:+--feedback ${PRIOR_GAUGE}}
       ```
-   b. **Read the rendered prompt and follow it.** Decompose the plan into ordered tasks. Each task must include: task number, title, description, files to create/modify, dependencies on other tasks (by number), verification criteria.
+   b. **Read the rendered prompt and follow it.** Decompose the plan into ordered tasks. Each task must include: task number, title, description, files to create/modify, type (`implementation` or `verification` — see prompt for semantics; `verification` tasks run a tool/command and modify no source files), dependencies on other tasks (by number), verification criteria.
 
       **Cross-check the plan against repo state before writing tasks:**
       - For each file path plan.md references, run `ls` or `git ls-tree HEAD <path>` to confirm it exists.
@@ -29,7 +29,7 @@ Break the implementation plan into ordered, actionable tasks using the Forge-Gau
       - When verification gates in plan.md reference a base branch, the rendered prompt's `{{BASE_BRANCH}}` is the per-spec value from `state.baseBranch` — preserve that exact branch name when copying gates into tasks.
 
    c. Write tasks to `specs/$SPEC_ID/tasks.md`.
-   d. Also save a JSON version to `.steel/tasks.json` with structure: `[{ "id": 1, "title": "...", "description": "..." }, ...]`.
+   d. Also save a JSON version to `.steel/tasks.json` with structure: `[{ "id": 1, "title": "...", "description": "...", "type": "implementation" | "verification" }, ...]`. The `type` field is parsed from the per-task `Type:` line; missing or unrecognized values default to `implementation`.
    e. Save artifact: `steel save-artifact --stage task_breakdown --iter $N --role forge --content-file specs/$SPEC_ID/tasks.md`.
    f. Commit: `steel commit-step --role forge --stage task_breakdown --iter $N --msg "iteration $N output"`.
 

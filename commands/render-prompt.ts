@@ -15,6 +15,7 @@ export interface RenderPromptOpts {
   task?: string;           // path to current task description (implement)
   output?: string;         // write rendered prompt here; default stdout
   iteration?: number;
+  template?: string;       // override role+stage→template auto-mapping
 }
 
 const FORGE_STAGE_TEMPLATE: Record<string, string> = {
@@ -98,13 +99,13 @@ export async function cmdRenderPrompt(opts: RenderPromptOpts): Promise<void> {
   };
 
   const templateMap = opts.role === 'forge' ? FORGE_STAGE_TEMPLATE : GAUGE_STAGE_TEMPLATE;
-  const templateName = templateMap[opts.stage];
+  const templateName = opts.template ?? templateMap[opts.stage];
   if (!templateName) {
-    die(`Unknown stage '${opts.stage}' for role '${opts.role}'.`);
+    die(`Unknown stage '${opts.stage}' for role '${opts.role}'. Pass --template to override.`);
   }
 
   const category = opts.role === 'forge' ? 'prompts/forge' : 'prompts/gauge';
-  const rendered = await renderTemplate(category, templateName!, vars, projectRoot);
+  const rendered = await renderTemplate(category, templateName, vars, projectRoot);
 
   if (opts.output) {
     await writeFile(opts.output, rendered, 'utf-8');

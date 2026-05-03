@@ -73,13 +73,16 @@ export async function cmdTasks(): Promise<void> {
   await advanceStage(projectRoot, state, config);
 }
 
-interface Task {
+export type TaskType = 'implementation' | 'verification';
+
+export interface Task {
   id: number;
   title: string;
   description: string;
+  type: TaskType;
 }
 
-function parseTasksMarkdown(md: string): Task[] {
+export function parseTasksMarkdown(md: string): Task[] {
   const tasks: Task[] = [];
   const lines = md.split('\n');
   let inTasksSection = false;
@@ -110,6 +113,7 @@ function parseTasksMarkdown(md: string): Task[] {
         id,
         title,
         description: '',
+        type: 'implementation',
       };
       continue;
     }
@@ -118,13 +122,23 @@ function parseTasksMarkdown(md: string): Task[] {
       continue;
     }
 
+    const trimmed = line.trim();
+
+    const typeMatch = trimmed.match(/^Type:\s*(\S+)/i);
+    if (typeMatch) {
+      const raw = typeMatch[1].toLowerCase();
+      currentTask.type = raw === 'verification' ? 'verification' : 'implementation';
+      currentTask.description += `${trimmed}\n`;
+      continue;
+    }
+
     if (/^\s*$/.test(line)) {
       currentTask.description += '\n';
       continue;
     }
 
-    if (/^\s{2,}\S/.test(line) || /^(Description|Files|Dependencies|Verification):/.test(line.trim())) {
-      currentTask.description += `${line.trim()}\n`;
+    if (/^\s{2,}\S/.test(line) || /^(Description|Files|Dependencies|Verification):/.test(trimmed)) {
+      currentTask.description += `${trimmed}\n`;
     }
   }
 
