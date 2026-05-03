@@ -11,6 +11,34 @@ Feature description: $ARGUMENTS
 
 0. Run `/clear` to clear the conversation context before starting this stage.
 
+0a. **Detect a previously-completed workflow.** Before reading state for step 1:
+
+   - `RETRO_STATUS=$(steel state get --field stages.retrospect.status)`
+   - `PREV_SPEC_ID=$(steel state get --field specId)`
+   - If `RETRO_STATUS != "complete"`, this step is a no-op — proceed to step 1.
+
+   If `RETRO_STATUS == "complete"`, ask the user verbatim (substituting `$PREV_SPEC_ID`):
+
+   > "A previous workflow (`<previous specId>`) is fully complete. Start a new workflow with this prompt? [y / clean / cancel]"
+
+   Read the user's response (case-insensitive, leading/trailing whitespace stripped). Any value other than exactly `y`, `clean`, or `cancel` MUST cause the prompt to be re-displayed verbatim until a valid response is given.
+
+   - **y** — preserve-history reset (step 0a-y below), then proceed to step 1. The new spec.md MUST include a `**Previous Spec ID:** <PREV_SPEC_ID>` line in its header block, placed between **Spec ID:** and **Status:**. Append this line ONLY when the y-path was taken; otherwise the line is absent.
+   - **clean** — invoke `/steel-clean` then detect outcome (step 0a-clean below).
+   - **cancel** — print `"Cancelled. Previous workflow <PREV_SPEC_ID> is still recorded as complete. Run /steel-clean or /steel-specify when ready."` and stop. No state changes, no commits, no branch.
+
+   ### 0a-y: preserve-history reset
+
+   `steel state reset`. This rewrites `.steel/state.json` to `createInitialState()` output. Prior `specs/<PREV_SPEC_ID>/` directory, `.steel/tasks.json`, and `steel/<PREV_SPEC_ID>/*-complete` git tags are NOT touched (documented in the command's `--description` and success message). Proceed to step 1.
+
+   ### 0a-clean: invoke /steel-clean and detect outcome
+
+   1. Snapshot: `PREV_SPEC_ID_BEFORE=$PREV_SPEC_ID` (already captured above; reuse).
+   2. Invoke `/steel-clean` end-to-end, including its own confirmation prompt. Do NOT bypass that confirmation.
+   3. After `/steel-clean` returns, re-read state: `POST_SPEC_ID=$(steel state get --field specId)`.
+   4. If `POST_SPEC_ID` is empty (state.json now has no `specId` field), `/steel-clean` ran to completion — proceed to step 1.
+   5. If `POST_SPEC_ID == PREV_SPEC_ID_BEFORE` (state unchanged), `/steel-clean` was declined or failed before resetting state — print `"/steel-clean did not complete — re-run /steel-specify when ready."` and stop. No branch, no commits.
+
 1. Read state + config:
    - `STATE=$(steel state get)` then verify `currentStage` is `specification`.
    - `CONFIG=$(steel show-config)` then extract `git.baseBranch` and `git.branchPrefix`.
