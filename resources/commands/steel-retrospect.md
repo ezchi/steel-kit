@@ -5,8 +5,6 @@ Review the entire workflow to extract learnings, memory candidates, and skill im
 
 ## Steps
 
-0. Run `/clear` to clear the conversation context before starting this stage.
-
 1. Verify state: `steel state get` and confirm `currentStage` is `retrospect`.
 2. Mark in progress: `steel state mark --stage retrospect --status in_progress`.
 

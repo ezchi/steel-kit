@@ -5,8 +5,6 @@ Validate the implementation against the specification using the Forge-Gauge loop
 
 ## Steps
 
-0. Run `/clear` to clear the conversation context before starting this stage.
-
 1. Verify state: `steel state get` and confirm `currentStage` is `validation`.
 2. Mark in progress: `steel state mark --stage validation --status in_progress`.
 

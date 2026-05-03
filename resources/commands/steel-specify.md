@@ -9,8 +9,6 @@ Feature description: $ARGUMENTS
 
 ## Steps
 
-0. Run `/clear` to clear the conversation context before starting this stage.
-
 0a. **Detect a previously-completed workflow.** Before reading state for step 1:
 
    - `RETRO_STATUS=$(steel state get --field stages.retrospect.status)`

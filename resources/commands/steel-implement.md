@@ -6,8 +6,6 @@ Implement all tasks using the Forge-Gauge loop. This is the stage where actual c
 
 ## Steps
 
-0. Run `/clear` to clear the conversation context before starting this stage.
-
 1. Verify state: `steel state get` and confirm `currentStage` is `implementation`.
 2. Read `.steel/tasks.json` to get the task list.
 3. Mark in progress: `steel state mark --stage implementation --status in_progress`.

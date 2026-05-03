@@ -6,8 +6,6 @@ Generate an implementation plan using the Forge-Gauge loop.
 
 ## Steps
 
-0. Run `/clear` to clear the conversation context before starting this stage.
-
 1. Verify state: `steel state get` and confirm `currentStage` is `planning` and `state.specId` is set.
 2. Mark in progress: `steel state mark --stage planning --status in_progress`.
 

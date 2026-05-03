@@ -6,8 +6,6 @@ Run clarification on the current specification using the Forge-Gauge loop.
 
 ## Steps
 
-0. Run `/clear` to clear the conversation context before starting this stage.
-
 1. Verify state: `steel state get` and confirm `currentStage` is `clarification`.
 
 2. Mark in progress: `steel state mark --stage clarification --status in_progress`.

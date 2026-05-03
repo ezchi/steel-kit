@@ -6,8 +6,6 @@ Break the implementation plan into ordered, actionable tasks using the Forge-Gau
 
 ## Steps
 
-0. Run `/clear` to clear the conversation context before starting this stage.
-
 1. Verify state: `steel state get` and confirm `currentStage` is `task_breakdown`.
 2. Mark in progress: `steel state mark --stage task_breakdown --status in_progress`.
 
