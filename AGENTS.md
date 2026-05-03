@@ -30,3 +30,7 @@ Recent history uses conventional prefixes such as `fix(installer): ...`, `chore(
 ## Configuration Notes
 
 Repository-level defaults live in `steel.config.yaml`. When changing prompts, templates, or command resources, update the canonical source file rather than generated output, then rebuild and test.
+
+## CLI Surface Changes
+
+When planning or implementing changes that add, remove, or rename CLI verbs, verify wiring in [`src/cli.ts`](/Users/ezchi/Projects/steel-kit/src/cli.ts). An exported handler in `commands/*.ts` does not imply the verb is reachable — `src/cli.ts` is the source of truth for registered commands. Read it before proposing or implementing a plan that assumes a CLI verb exists.
