@@ -6,14 +6,18 @@ Remove the artifacts of the current workflow and reset state so you can start fr
 
 2. Read `.steel/state.json` (or recover it if missing). Note the `specId`.
 
-3. Show what will be removed:
-   - `.steel/state.json`
+3. Show what will be removed AND preserved:
+
+   Will be removed:
+   - `.steel/state.json` (will be reset to initial state after deletion)
    - `.steel/tasks.json`
-   - `specs/<specId>/artifacts/` (iteration artifacts only, not spec/plan/retrospect files)
-   - `specs/<specId>/retrospect.md`
+   - `specs/<specId>/artifacts/` (forge/gauge iteration files)
    - Git tags matching `steel/<specId>/*-complete` (scoped to active spec; falls back to `steel/*/*-complete` if specId unknown)
 
-4. Ask the user to confirm: "This will remove iteration artifacts for spec `<specId>` and reset workflow state. Continue?"
+   Will be PRESERVED:
+   - `specs/<specId>/spec.md`, `plan.md`, `tasks.md`, `validation.md`, `retrospect.md`, `clarifications.md`
+
+4. Ask the user to confirm: "This will remove iteration artifacts under `specs/<specId>/artifacts/` and reset `.steel/state.json` + `.steel/tasks.json`. Top-level deliverables (spec.md, plan.md, tasks.md, validation.md, retrospect.md, clarifications.md) will be PRESERVED. Continue?"
 
 5. If confirmed:
    a. Delete `specs/<specId>/artifacts/` directory (if it exists)
