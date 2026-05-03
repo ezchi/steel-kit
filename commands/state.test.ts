@@ -373,3 +373,39 @@ describe('FR-7 Previous Spec ID line placement', () => {
     expect(findPreviousSpecIdPlacement(md)).toBe('present-but-misplaced');
   });
 });
+
+describe('canonical source contracts (resources/commands/steel-specify.md)', () => {
+  let canonical: string;
+
+  beforeEach(() => {
+    canonical = readFileSync(
+      resolve(__dirname, '..', 'resources/commands/steel-specify.md'),
+      'utf-8',
+    );
+  });
+
+  it('AC-1 — contains the FR-3 prompt verbatim', () => {
+    expect(canonical).toContain(
+      'A previous workflow (`<previous specId>`) is fully complete. Start a new workflow with this prompt? [y / clean / cancel]',
+    );
+  });
+
+  it('AC-3 — contains the input-normalization rule prose', () => {
+    expect(canonical).toContain('case-insensitive');
+    expect(canonical).toContain('whitespace stripped');
+  });
+
+  it('FR-7 — contains the placement rule prose', () => {
+    expect(canonical).toContain('between **Spec ID:** and **Status:**');
+  });
+
+  it('FR-6 — contains the cancel message prefix', () => {
+    expect(canonical).toContain('Cancelled. Previous workflow');
+  });
+
+  it('FR-5 step 4 — contains the abort message verbatim (with em-dash)', () => {
+    expect(canonical).toContain(
+      '/steel-clean did not complete — re-run /steel-specify when ready.',
+    );
+  });
+});
