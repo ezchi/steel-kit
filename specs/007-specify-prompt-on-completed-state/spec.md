@@ -3,7 +3,7 @@
 **Spec ID:** 007-specify-prompt-on-completed-state
 **Status:** Draft
 **Created:** 2026-05-03
-**Iteration:** 2 (revised from gauge feedback iter 1)
+**Iteration:** 3 (clarifications applied: 3 OQs resolved, 2 warnings + 5 notes folded in)
 
 ## Overview
 
@@ -90,8 +90,12 @@ The audit trail for this reset is carried by FR-7, not by a dedicated commit.
 When the user selects **clean**:
 
 1. Invoke `/steel-clean` end-to-end, including its own confirmation prompt (`resources/commands/steel-clean.md` step 4: "This will remove iteration artifacts for spec `<specId>` and reset workflow state. Continue?"). The `/steel-specify` flow MUST NOT bypass that confirmation.
-2. If `/steel-clean` runs to completion, proceed to step 1 of `/steel-specify`.
-3. If `/steel-clean` fails or its inner confirmation is declined, abort `/steel-specify` with the message: `/steel-clean did not complete — re-run /steel-specify when ready.` Do NOT silently fall back to "y" or any other option.
+2. **Snapshot before invoking:** capture `previousSpecId = state.specId` (a non-empty string, since FR-1's trigger requires a completed workflow with `specId` set).
+3. **Detect outcome by state diff:** after `/steel-clean` returns, re-read `.steel/state.json`. The outcome classification is:
+   - **Successful clean** — reloaded state has `specId === undefined` (or equivalently `currentStage === "specification"` AND `stages.specification.status === "pending"`). Proceed to step 5. Note: this classification holds even if `cmdClean`'s optional `autoCommit` block (`commands/clean.ts:93-101`) failed *after* writing fresh state — the user-visible outcome (fresh state, artifacts removed) matches success, so `/steel-specify` proceeds. A failed autoCommit is a separate concern surfaced by `cmdClean` itself.
+   - **Declined or failed-before-state-write** — reloaded state still has `specId === previousSpecId`. Treat as "did not complete" and go to step 4.
+4. **Abort path:** print `/steel-clean did not complete — re-run /steel-specify when ready.` and exit. Do NOT silently fall back to "y" or any other option. No branch is created. No commits are added.
+5. **Continue path:** proceed to step 1 of `/steel-specify` (which generates a new spec ID and branch from the user's description).
 
 ### FR-6: "cancel" — stop
 
@@ -103,7 +107,7 @@ When the user selects **cancel**:
 
 ### FR-7: Audit trail — `previousSpecId` in the new spec's frontmatter
 
-When the **y** path proceeds to step 1 and a new spec ID is generated, the new spec directory's `spec.md` MUST include a `Previous Spec ID:` field in its header block (next to `Spec ID:`, `Status:`, `Created:`):
+When the **y** path proceeds to step 1 and a new spec ID is generated, the new spec directory's `spec.md` MUST include a `Previous Spec ID:` field in its header block:
 
 ```markdown
 # Specification: <title>
@@ -114,9 +118,13 @@ When the **y** path proceeds to step 1 and a new spec ID is generated, the new s
 **Created:** <YYYY-MM-DD>
 ```
 
-Rationale: `.steel/state.json` is gitignored (`commands/clean.test.ts:90`, `commands/clean.ts:91-92`), so a commit touching only `state.json` would be empty. Committing `previousSpecId` into the new spec's tracked `spec.md` yields a real, reviewable audit record per constitution principle 4. The field is omitted entirely when the **y** path was not taken.
+**Placement:** insert immediately after `**Spec ID:**` and before `**Status:**`. The field is appended only when the **y** path of step `0a` was taken; specs created without a completed-workflow reset omit the line entirely. No `templates/spec.md` change is required because that template does not contain the header fields — they are Forge-LLM-added per spec.
 
-If `config.autoCommit === true`, the existing forge commit at the end of step 6 (forge phase, iteration 1) carries this field naturally — no additional commit is required.
+**Rationale:** `.steel/state.json` is gitignored (`commands/clean.test.ts:90`, `commands/clean.ts:91-92`), so a commit touching only `state.json` would be empty. Committing `previousSpecId` into the new spec's tracked `spec.md` yields a real, reviewable audit record per constitution principle 4.
+
+**Commit behavior:**
+- If `config.autoCommit === true`, the existing forge commit at the end of step 6 (forge phase, iteration 1) carries the `Previous Spec ID:` line naturally — no additional commit is required.
+- If `config.autoCommit === false`, the field is still written to `spec.md` (so it appears in `git status` and is captured by any subsequent commit), but `/steel-specify` does NOT add an automatic commit. This honors the user's `autoCommit: false` configuration per constitution principle 6 (automation is subordinate to user control).
 
 ### FR-8: Canonical-source update and per-provider propagation
 
@@ -128,11 +136,11 @@ Propagation is via `steel update` (`src/cli.ts:69-72`, command `cmdUpdate`), whi
 
 This spec does NOT add a `steel specify` user-facing CLI command, nor `--reset-completed` / `--clean-completed` flags. Per `src/cli.ts:48-52`, per-stage verbs are not exposed at the CLI; `cmdSpecify` exists only as an internal helper. Headless / CI users continue to use `steel run-all`. If a future spec wants a fully non-interactive entry point for completed-state recovery, that is its scope, not this one's.
 
-### FR-10: Single state-classification helper
+### FR-10: Internal TypeScript helper for the classification rule
 
-Add (or re-use, if a suitable helper already exists) a pure function `isCompletedWorkflow(state: WorkflowState): boolean` in `src/workflow.ts` (or a co-located file) implementing FR-1's rule. Both the slash-command flow (via `steel state get --field stages.retrospect.status` or a new `steel state classify` helper) and any future caller must consult the same helper, so the rule has one source of truth.
+Add `isCompletedWorkflow(state: WorkflowState): boolean` as an internal TypeScript helper in `src/workflow.ts`, implementing the FR-1 rule. The helper exists for TS-side callers and tests, ensuring the rule can be asserted directly without shelling out.
 
-> [NEEDS CLARIFICATION] Should the slash command call a new helper subcommand (e.g., `steel state classify` printing `completed` / `not-completed`) or read `stages.retrospect.status` directly via the existing `steel state get --field stages.retrospect.status`? The latter is sufficient for FR-1 today; the former is more future-proof if FR-1's rule ever grows. Resolve in clarification.
+The slash command implements the FR-1 rule inline via the existing `steel state get --field stages.retrospect.status` primitive (literal compare to `complete`); no new CLI subcommand is added. **Both call sites — the bash-level slash command and the TS helper — must change together if FR-1 ever evolves.** This is an accepted duplication in service of minimal scope (no new CLI surface) and matches Steel-Kit's existing pattern of slash commands consulting state via existing helper subcommands.
 
 ## Non-Functional Requirements
 
@@ -141,25 +149,25 @@ Add (or re-use, if a suitable helper already exists) a pure function `isComplete
 - **NFR-3:** Behavior parity across Codex, Gemini CLI, and Claude Code provider paths is required. Because the change is exclusively in the canonical slash-command source, parity is achieved by `steel update` regenerating per-provider copies. No provider-specific branches in the command logic.
 - **NFR-4:** Supported OSes remain macOS and Linux only; no Windows-specific assumptions in any new prompt or shell-out.
 - **NFR-5:** Tests MUST cover, at minimum:
-  - **FR-1:** truth table for `isCompletedWorkflow` — `retrospect.status` of `complete` returns true; `pending` / `in_progress` return false; absence of `state.stages.retrospect` (corrupt input) returns false (no throw).
+  - **FR-1 / FR-10:** truth table for `isCompletedWorkflow` — `retrospect.status` of `complete` returns true; `pending` / `in_progress` return false; absence of `state.stages.retrospect` (corrupt input) returns false (no throw).
   - **FR-3:** prompt text matches the verbatim string in FR-3.
   - **FR-4:** post-reset `state.json` is byte-identical to `createInitialState()` output (snapshot test); `specs/<previousSpecId>/` exists unchanged before vs after; `git tag --list 'steel/<previousSpecId>/*'` returns the same set before vs after.
-  - **FR-5:** when `/steel-clean`'s inner confirmation is declined, `/steel-specify` aborts with the FR-5 step-3 message; no branch is created.
+  - **FR-5:** when `/steel-clean`'s inner confirmation is declined, the FR-5 step 2.5 state-diff check correctly identifies the decline and `/steel-specify` aborts with the step-4 message; no branch is created.
   - **FR-6:** "cancel" yields a byte-identical `state.json` and zero new commits.
-  - **FR-7:** when the **y** path was taken, the new `spec.md` contains a `**Previous Spec ID:** <X>` line; when the **y** path was NOT taken, the line is absent.
+  - **FR-7:** when the **y** path was taken, the new `spec.md` contains a `**Previous Spec ID:** <X>` line placed between `**Spec ID:**` and `**Status:**`; when the **y** path was NOT taken, the line is absent.
   - **FR-8:** running `steel update` in a project after a Steel-Kit upgrade copies the updated `resources/commands/steel-specify.md` to the per-provider installed paths (this can be a thin assertion against `command-installer.ts` since the propagation path is existing functionality).
 
 ## Acceptance Criteria
 
 - **AC-1:** With `state.stages.retrospect.status == "complete"`, running `/steel-specify "feature X"` displays the FR-3 prompt verbatim and does NOT proceed until a valid choice is made.
 - **AC-2:** With `state.stages.retrospect.status == "in_progress"` or `"pending"`, the prompt does NOT appear and the existing flow runs unchanged.
-- **AC-3:** With state classified as completed and the user input is whitespace, gibberish, or `Other`, the prompt is re-displayed verbatim until a valid choice is given.
+- **AC-3:** With state classified as completed and the user input is whitespace, an unrecognized token, or empty, the prompt is re-displayed verbatim until a valid choice is given.
 - **AC-4:** Selecting **y** results in `state.json` byte-identical to `createInitialState()` output; `specs/<previousSpecId>/` is intact; `git tag --list 'steel/<previousSpecId>/*'` returns the prior tags unchanged; the new branch is created; the new `spec.md` contains a `**Previous Spec ID:** <previousSpecId>` line.
 - **AC-5:** Selecting **clean** invokes `/steel-clean`'s flow (including its inner confirmation) and on completion proceeds to step 1.
-- **AC-6:** Selecting **clean** then declining the inner `/steel-clean` confirmation aborts `/steel-specify` with the FR-5 step-3 message; no branch is created; no commits are added.
+- **AC-6:** Selecting **clean** then declining the inner `/steel-clean` confirmation aborts `/steel-specify` with the FR-5 step-4 message; no branch is created; no commits are added.
 - **AC-7:** Selecting **cancel** leaves `.steel/state.json` byte-identical, creates no commits, no branch, no tag operations, and prints the FR-6 message.
 - **AC-8:** Running `steel update` in a project after pulling a Steel-Kit version that contains step `0a` in `resources/commands/steel-specify.md` copies the updated content into `.claude/commands/steel-specify.md` (and the equivalent Gemini/Codex paths if those provider toolchains are installed).
-- **AC-9:** All existing tests in `commands/clean.test.ts`, `src/workflow.test.ts`, `src/git-config.test.ts`, and `src/spec-id.test.ts` continue to pass without modification.
+- **AC-9:** No existing test in `commands/clean.test.ts`, `src/workflow.test.ts`, `src/git-config.test.ts`, or `src/spec-id.test.ts` fails unless the failure is a deliberate snapshot update reviewed against this spec.
 
 ## Out of Scope
 
@@ -171,9 +179,9 @@ Add (or re-use, if a suitable helper already exists) a pure function `isComplete
 - Changing how `command-installer.ts` propagates canonical sources to per-provider copies.
 - A "rename and archive" option that moves `specs/<previous>/` to `specs/archive/<previous>/`. Separate spec if desired.
 - Changing the existing precondition error in `commands/specify.ts:28-35` (the CLI helper). It remains as a defensive check for misconfiguration; the new step `0a` lives in the slash-command flow upstream of it.
+- Pre-emptive slug-collision detection in step `0a`. The existing throw in `src/spec-id.ts:46-50` produces the right error when `--id <X>` plus the new slug collides with an existing spec dir. Auto-numbered specs (no `--id`) cannot collide because `generateSpecId` picks `nextNum = max(existing) + 1`.
+- Adding `Previous Spec ID:` to downstream artifacts (`tasks.md`, `plan.md`, `retrospect.md`). `spec.md` is the canonical audit anchor; downstream artifacts reach the prior spec via `git log` through the new spec dir.
 
 ## Open Questions
 
-- **OQ-1:** FR-10 — should the classification rule live in a new helper subcommand (`steel state classify`) or be derived from the existing `steel state get --field stages.retrospect.status`? Both implement FR-1 today; the former is more future-proof, the latter requires zero new CLI surface.
-- **OQ-2:** Should the "Previous Spec ID" field (FR-7) also appear in `tasks.md`, `plan.md`, and other downstream artifacts of the new workflow, or is `spec.md` sufficient as the canonical audit anchor? Recommendation: `spec.md` only — downstream artifacts can `git log` the new spec back to the previous via the spec.md field.
-- **OQ-3:** When a user picks **y** but the new feature description happens to slugify to a string that collides with an existing spec dir (e.g., a user re-runs the same description twice), `generateSpecId` (`src/spec-id.ts:46-50`) will throw. Should `0a` pre-empt this by warning earlier, or is the existing throw acceptable? Recommendation: existing throw is acceptable — collision is a separate failure mode unrelated to completed-state recovery.
+None. All clarifications resolved in `clarifications.md` (committed at `forge(clarification): iteration 1 output [iteration 1]`).
