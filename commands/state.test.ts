@@ -2,6 +2,7 @@ import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
+import { execSync } from 'node:child_process';
 
 function makeTempDir(): string {
   const dir = resolve(
@@ -162,5 +163,70 @@ describe('state helper subcommands', () => {
     await cmdStateSetSkills({ stage: 'planning', skills: ['sv-gen', 'systemverilog-core'] });
     const state = readState(tempDir);
     expect(state.skillsUsed.planning).toEqual(['sv-gen', 'systemverilog-core']);
+  });
+});
+
+describe('cmdStateReset', () => {
+  let tempDir: string;
+  let cwdSpy: any;
+
+  beforeEach(() => {
+    tempDir = makeTempDir();
+    setupProject(tempDir);
+    cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(tempDir);
+  });
+
+  afterEach(() => {
+    cwdSpy.mockRestore();
+    if (existsSync(tempDir)) {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('writes state.json byte-identical to JSON.stringify(createInitialState(), null, 2) — no trailing newline', async () => {
+    const { cmdStateReset } = await import('./state.js');
+    const { createInitialState } = await import('../src/workflow.js');
+
+    await cmdStateReset();
+
+    const onDisk = readFileSync(resolve(tempDir, '.steel/state.json'), 'utf-8');
+    const expected = JSON.stringify(createInitialState(), null, 2);
+    expect(onDisk).toBe(expected);
+  });
+
+  it('does not touch existing specs/<id>/ directory', async () => {
+    const specPath = resolve(tempDir, 'specs/001-foo/spec.md');
+    writeFile(tempDir, 'specs/001-foo/spec.md', '# Original content');
+
+    const { cmdStateReset } = await import('./state.js');
+    await cmdStateReset();
+
+    expect(existsSync(specPath)).toBe(true);
+    expect(readFileSync(specPath, 'utf-8')).toBe('# Original content');
+  });
+
+  it('does not touch existing .steel/tasks.json', async () => {
+    const tasksPath = resolve(tempDir, '.steel/tasks.json');
+    writeFile(tempDir, '.steel/tasks.json', '{"foo":1}');
+
+    const { cmdStateReset } = await import('./state.js');
+    await cmdStateReset();
+
+    expect(existsSync(tasksPath)).toBe(true);
+    expect(readFileSync(tasksPath, 'utf-8')).toBe('{"foo":1}');
+  });
+
+  it('does not delete git tags matching steel/<previousSpecId>/*', async () => {
+    execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.email "test@example.com"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git commit --allow-empty -m "init"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git tag steel/001-foo/specification-complete', { cwd: tempDir, stdio: 'ignore' });
+
+    const { cmdStateReset } = await import('./state.js');
+    await cmdStateReset();
+
+    const tags = execSync('git tag -l "steel/001-foo/*"', { cwd: tempDir }).toString().trim();
+    expect(tags).toBe('steel/001-foo/specification-complete');
   });
 });
