@@ -1,0 +1,25 @@
+
+> @steel-kit/core@0.8.2 test
+> vitest
+
+
+ RUN  v3.2.4 /Users/ezchi/Projects/steel-kit
+
+ ✓ src/command-installer.test.ts (4 tests) 2ms
+ ✓ src/forge.test.ts (3 tests) 97ms
+ ✓ src/git-config.test.ts (35 tests) 4ms
+ ✓ src/spec-id.test.ts (13 tests) 5ms
+ ✓ src/config.test.ts (7 tests) 15ms
+ ✓ commands/init.test.ts (6 tests) 23ms
+ ✓ commands/render-prompt.test.ts (4 tests) 134ms
+ ✓ commands/state.test.ts (24 tests) 222ms
+ ✓ src/git-ops.test.ts (5 tests) 239ms
+ ✓ commands/clean.test.ts (5 tests) 488ms
+ ✓ src/doctor.test.ts (17 tests) 631ms
+ ✓ src/workflow.test.ts (19 tests) 650ms
+
+ Test Files  12 passed (12)
+      Tests  142 passed (142)
+   Start at  13:03:10
+   Duration  1.00s (transform 344ms, setup 0ms, collect 1.39s, tests 2.51s, environment 1ms, prepare 430ms)
+
