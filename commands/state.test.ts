@@ -4,6 +4,21 @@ import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execSync } from 'node:child_process';
 
+const confirmMock = vi.fn();
+
+vi.mock('../src/utils.js', () => ({
+  log: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    success: vi.fn(),
+    debug: vi.fn(),
+    step: vi.fn(),
+    error: vi.fn(),
+  },
+  confirm: (...args: any[]) => confirmMock(...args),
+  die: (msg: string) => { throw new Error(msg); },
+}));
+
 function makeTempDir(): string {
   const dir = resolve(
     tmpdir(),
@@ -228,5 +243,133 @@ describe('cmdStateReset', () => {
 
     const tags = execSync('git tag -l "steel/001-foo/*"', { cwd: tempDir }).toString().trim();
     expect(tags).toBe('steel/001-foo/specification-complete');
+  });
+});
+
+describe('FR-4 reset shape (composition)', () => {
+  let tempDir: string;
+  let cwdSpy: any;
+
+  beforeEach(() => {
+    tempDir = makeTempDir();
+    setupProject(tempDir);
+    cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(tempDir);
+  });
+
+  afterEach(() => {
+    cwdSpy.mockRestore();
+    if (existsSync(tempDir)) {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('AC-4 — reset preserves prior spec dir while writing fresh state', async () => {
+    writeFile(tempDir, 'specs/001-foo/spec.md', '# Original spec');
+
+    const { cmdStateReset } = await import('./state.js');
+    const { createInitialState } = await import('../src/workflow.js');
+
+    await cmdStateReset();
+
+    const state = JSON.parse(readFileSync(resolve(tempDir, '.steel/state.json'), 'utf-8'));
+    expect(state).toEqual(createInitialState());
+    expect(existsSync(resolve(tempDir, 'specs/001-foo/spec.md'))).toBe(true);
+    expect(readFileSync(resolve(tempDir, 'specs/001-foo/spec.md'), 'utf-8')).toBe('# Original spec');
+  });
+});
+
+describe('FR-5 decline detection (composition)', () => {
+  let tempDir: string;
+  let cwdSpy: any;
+
+  beforeEach(() => {
+    tempDir = makeTempDir();
+    setupProject(tempDir);
+    cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(tempDir);
+    confirmMock.mockReset();
+  });
+
+  afterEach(() => {
+    cwdSpy.mockRestore();
+    if (existsSync(tempDir)) {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('AC-6 — declined /steel-clean leaves state.specId unchanged (state-diff signal)', async () => {
+    const beforeState = JSON.parse(readFileSync(resolve(tempDir, '.steel/state.json'), 'utf-8'));
+    const previousSpecId = beforeState.specId;
+    expect(previousSpecId).toBe('001-foo');
+
+    confirmMock.mockResolvedValue(false);
+
+    const { cmdClean } = await import('./clean.js');
+    await cmdClean();
+
+    const afterState = JSON.parse(readFileSync(resolve(tempDir, '.steel/state.json'), 'utf-8'));
+    expect(afterState.specId).toBe(previousSpecId);
+    expect(afterState).toEqual(beforeState);
+  });
+});
+
+describe('FR-7 Previous Spec ID line placement', () => {
+  function findPreviousSpecIdPlacement(
+    specMd: string,
+  ): 'after-spec-id-before-status' | 'present-but-misplaced' | 'absent' {
+    const lines = specMd.split('\n');
+    const specIdIdx = lines.findIndex((l) => l.startsWith('**Spec ID:**'));
+    const prevIdx = lines.findIndex((l) => l.startsWith('**Previous Spec ID:**'));
+    const statusIdx = lines.findIndex((l) => l.startsWith('**Status:**'));
+    if (prevIdx < 0) return 'absent';
+    if (specIdIdx >= 0 && statusIdx >= 0 && specIdIdx < prevIdx && prevIdx < statusIdx) {
+      return 'after-spec-id-before-status';
+    }
+    return 'present-but-misplaced';
+  }
+
+  it('absent — spec.md without the line', () => {
+    const md = [
+      '# Specification: Test',
+      '',
+      '**Spec ID:** 008-test',
+      '**Status:** Draft',
+      '**Created:** 2026-05-03',
+    ].join('\n');
+    expect(findPreviousSpecIdPlacement(md)).toBe('absent');
+  });
+
+  it('correctly placed — between Spec ID and Status', () => {
+    const md = [
+      '# Specification: Test',
+      '',
+      '**Spec ID:** 008-test',
+      '**Previous Spec ID:** 007-prior',
+      '**Status:** Draft',
+      '**Created:** 2026-05-03',
+    ].join('\n');
+    expect(findPreviousSpecIdPlacement(md)).toBe('after-spec-id-before-status');
+  });
+
+  it('misplaced — line appears AFTER Status', () => {
+    const md = [
+      '# Specification: Test',
+      '',
+      '**Spec ID:** 008-test',
+      '**Status:** Draft',
+      '**Previous Spec ID:** 007-prior',
+      '**Created:** 2026-05-03',
+    ].join('\n');
+    expect(findPreviousSpecIdPlacement(md)).toBe('present-but-misplaced');
+  });
+
+  it('misplaced — line appears BEFORE Spec ID', () => {
+    const md = [
+      '# Specification: Test',
+      '',
+      '**Previous Spec ID:** 007-prior',
+      '**Spec ID:** 008-test',
+      '**Status:** Draft',
+    ].join('\n');
+    expect(findPreviousSpecIdPlacement(md)).toBe('present-but-misplaced');
   });
 });
