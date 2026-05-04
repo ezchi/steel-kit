@@ -44,11 +44,32 @@ Run clarification on the current specification using the Forge-Gauge loop.
    g. Run gauge per `config.gauge.provider`: Task subagent (fresh context) if `claude`, else `steel run-gauge --provider <name> --prompt-file ... --output specs/$SPEC_ID/artifacts/clarification/iter${N}-gauge.md`.
    h. If subagent path: save with `steel save-artifact --stage clarification --iter $N --role gauge --content "$REVIEW"`.
    i. Commit: `steel commit-step --role gauge --stage clarification --iter $N --msg "iteration $N review — <VERDICT>"`.
-   j. Parse verdict. APPROVE → break. REVISE → `steel state iter --inc`, set `PRIOR_GAUGE` to the new gauge artifact, then run the Complexity Gate (below) before looping back.
+   j. **Parse the verdict** from the last 10 lines of the gauge artifact (`VERDICT: APPROVE` or `VERDICT: REVISE`).
+
+   ### User Review Gate — runs after every gauge iteration
+
+   k. Show the user the parsed verdict, the gauge artifact path (`specs/$SPEC_ID/artifacts/clarification/iter${N}-gauge.md`), and a 2–3 line synopsis of the gauge's main points.
+
+   l. Ask the user verbatim:
+      > "Gauge iter ${N} → VERDICT: <APPROVE|REVISE>. Review at `<path>`.
+      > [c]ontinue (respect verdict) / [o]verride (flip verdict) / [s]top"
+
+   m. Read the response (case-insensitive, whitespace-trimmed). Re-prompt verbatim until the user enters exactly `c`, `o`, or `s`.
+
+   n. Resolve the **effective verdict** from the user's choice:
+      - **c (continue)**: effective verdict = gauge verdict.
+      - **o (override)**: effective verdict = flipped gauge verdict.
+        - On APPROVE→REVISE flip, ask verbatim: `"What should the next iteration address?"` Save the answer to `specs/$SPEC_ID/artifacts/clarification/iter${N}-user-feedback.md` with a top header, then `git add` and commit: `git commit -m "clarify($SPEC_ID): user override iter $N approve→revise"`. Use that file as `PRIOR_GAUGE` for the next iteration instead of the gauge artifact.
+        - On REVISE→APPROVE flip: `git commit --allow-empty -m "clarify($SPEC_ID): user override iter $N revise→approve"`.
+      - **s (stop)**: leave stage `in_progress`, print `"Stage paused at iter ${N}. Re-run /steel-clarify to resume."` and stop.
+
+   o. Apply the **effective verdict**:
+      - **APPROVE**: break the loop, go to step 4.
+      - **REVISE**: `steel state iter --inc`. If `PRIOR_GAUGE` was not set by the override branch in step n, set it to the gauge artifact. Run the Complexity Gate (below), then loop back to step 3a.
 
    ### Complexity Gate — iteration > 8 (simplicity principle)
 
-   After step j, check `state.iter`. The **first time** it crosses `> 8` (8 forge-gauge rounds completed without APPROVE), pause the loop. **Clarification that won't converge in 8 iterations means the underlying spec is too complex; the spec should be split.** Offer this gate at most once per workflow — if the user declines, do not offer again.
+   After step o, check `state.iter`. The **first time** it crosses `> 8` (8 forge-gauge rounds completed without APPROVE), pause the loop. **Clarification that won't converge in 8 iterations means the underlying spec is too complex; the spec should be split.** Offer this gate at most once per workflow — if the user declines, do not offer again.
 
    1. Read `specs/$SPEC_ID/spec.md`, the in-progress `clarifications.md`, and the most recent gauge artifact. Identify which features in the spec are generating the disagreement and could be deferred without breaking the user's core intent.
 
@@ -83,7 +104,7 @@ Run clarification on the current specification using the Forge-Gauge loop.
          v. Loop back to step 3a. Clear `PRIOR_GAUGE` so the Forge does not chase feedback that referenced removed scope.
 
    ### Max-iter cap
-   k. On cap with no APPROVE, prompt "Continue for up to `<maxIterations>` more? (y/N)". Yes → continue. No → leave `in_progress`, stop.
+   p. On cap with no APPROVE, prompt "Continue for up to `<maxIterations>` more? (y/N)". Yes → continue. No → leave `in_progress`, stop.
 
 4. **HUMAN APPROVAL GATE** — ask the user: **"Approve clarifications and advance to planning?"**
    - Approved: `steel state mark --stage clarification --status complete`, `steel tag-stage --stage clarification`, `steel state advance-stage`.

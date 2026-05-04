@@ -141,12 +141,30 @@ Feature description: $ARGUMENTS
 
    j. **Parse the verdict** from the last 10 lines of the gauge artifact. Look for `VERDICT: APPROVE` or `VERDICT: REVISE`.
 
-   k. If **APPROVE**: break the loop, go to step 7.
-   l. If **REVISE**: `steel state iter --inc`, set `PRIOR_GAUGE=specs/$SPEC_ID/artifacts/specification/iter${N}-gauge.md`, then run the Complexity Gate (below) before looping back to step 6a.
+   ### User Review Gate — runs after every gauge iteration
+
+   k. Show the user the parsed verdict, the gauge artifact path (`specs/$SPEC_ID/artifacts/specification/iter${N}-gauge.md`), and a 2–3 line synopsis of the gauge's main points.
+
+   l. Ask the user verbatim:
+      > "Gauge iter ${N} → VERDICT: <APPROVE|REVISE>. Review at `<path>`.
+      > [c]ontinue (respect verdict) / [o]verride (flip verdict) / [s]top"
+
+   m. Read the response (case-insensitive, whitespace-trimmed). Re-prompt verbatim until the user enters exactly `c`, `o`, or `s`.
+
+   n. Resolve the **effective verdict** from the user's choice:
+      - **c (continue)**: effective verdict = gauge verdict.
+      - **o (override)**: effective verdict = flipped gauge verdict.
+        - On APPROVE→REVISE flip, ask verbatim: `"What should the next iteration address?"` Read the answer, save it to `specs/$SPEC_ID/artifacts/specification/iter${N}-user-feedback.md` with a top header, then `git add` that file and commit: `git commit -m "specify($SPEC_ID): user override iter $N approve→revise"`. Use that file as `PRIOR_GAUGE` for the next iteration instead of the gauge artifact.
+        - On REVISE→APPROVE flip: `git commit --allow-empty -m "specify($SPEC_ID): user override iter $N revise→approve"`.
+      - **s (stop)**: leave stage `in_progress`, print `"Stage paused at iter ${N}. Re-run /steel-specify (with no description) to resume."` and stop.
+
+   o. Apply the **effective verdict**:
+      - **APPROVE**: break the loop, go to step 7.
+      - **REVISE**: `steel state iter --inc`. If `PRIOR_GAUGE` was not already set by the override branch in step 6n, set `PRIOR_GAUGE=specs/$SPEC_ID/artifacts/specification/iter${N}-gauge.md`. Run the Complexity Gate (below), then loop back to step 6a.
 
    ### Complexity Gate — iteration > 8 (simplicity principle)
 
-   After step 6l, check `state.iter`. The **first time** it crosses `> 8` (8 forge-gauge rounds completed without APPROVE), pause the loop. **A spec that won't converge in 8 iterations is too complex; it should be split.** Offer this gate at most once per workflow — if the user declines, do not offer again.
+   After step 6o, check `state.iter`. The **first time** it crosses `> 8` (8 forge-gauge rounds completed without APPROVE), pause the loop. **A spec that won't converge in 8 iterations is too complex; it should be split.** Offer this gate at most once per workflow — if the user declines, do not offer again.
 
    1. Read `specs/$SPEC_ID/spec.md` and the most recent gauge artifact. Identify which user stories, FRs, NFRs, or scope items are driving disagreement and could be deferred without breaking the user's core intent.
 
@@ -180,7 +198,7 @@ Feature description: $ARGUMENTS
          iv. Loop back to step 6a. The next Forge iteration starts from the simplified spec; clear `PRIOR_GAUGE` so the Forge does not chase feedback that referenced removed scope.
 
    ### Max-iter cap behavior
-   m. If you hit `config.maxIterations` without APPROVE, ask the user verbatim:
+   p. If you hit `config.maxIterations` without APPROVE, ask the user verbatim:
       > "Max iterations reached for specification. Continue for up to `<maxIterations>` more iterations? (y/N)"
       - If yes: continue the loop.
       - If no: leave stage `in_progress`, print "Stage paused. Re-run `/steel-specify` (with no description) to resume." and stop.
@@ -229,7 +247,10 @@ Feature description: $ARGUMENTS
       f. Same Gauge invocation pattern as step 6g (Task subagent if claude, else `steel run-gauge`).
       g. Save: `steel save-artifact --stage specification --iter $N --role gauge --content-file ...`.
       h. Commit: `steel commit-step --role gauge --stage specification --iter $N --msg "delta iteration $N review — <VERDICT>"`.
-      i. If **REVISE**: fix only the disputed items, loop back. If **APPROVE**: exit delta loop.
+      i. **User Review Gate** — same shape as the main loop's gate (steps 6k–6o). Show verdict + artifact path + 2–3 line synopsis; ask `[c]ontinue / [o]verride / [s]top`; resolve the effective verdict. On APPROVE→REVISE override, ask `"What should the next iteration address?"`, save the answer to `specs/$SPEC_ID/artifacts/specification/iter${N}-delta-user-feedback.md`, commit it, and treat that file as the feedback for the next delta forge iteration. Record overrides via `git commit --allow-empty -m "specify($SPEC_ID): delta user override iter $N — <flip>"` when no file was committed. Then:
+         - **APPROVE (effective)**: exit delta loop.
+         - **REVISE (effective)**: loop back to 8.a, addressing the disputed items (or the user's override feedback).
+         - **stop**: leave stage `in_progress`, print the resume message, and stop.
 
    3. Return to step 7 — ask the user again: **"Approve specification and advance to clarification?"**
 
