@@ -63,6 +63,32 @@ Feature description: $ARGUMENTS
 
 6. **FORGE-GAUGE LOOP** (max iterations from `config.maxIterations`):
 
+   ### Pre-Loop: Intent Interview (iteration 1 only — MANDATORY)
+
+   Before producing any Forge output, you MUST fully understand the user's intent. **No assumptions, no guessing.**
+
+   - Read `.steel/constitution.md` for project context.
+   - Interview the user **one question at a time**: ask exactly ONE focused clarifying question, wait for the user's answer, then decide whether to ask the next.
+   - Cover at minimum: goal, constraints, expected output, and success criteria. Stop asking once these dimensions are clear; do NOT pad with questions you can answer from context.
+   - Never batch multiple questions in one turn. Never propose multiple-choice answers in lieu of asking. Never proceed to draft the spec until each open dimension is settled by an explicit user answer.
+   - Record the conversation verbatim to `specs/$SPEC_ID/interview.md` as you go:
+     ```markdown
+     # Pre-Spec Interview
+
+     **Original prompt:** <verbatim $ARGUMENTS>
+
+     ## Q1
+     <your question>
+
+     ## A1
+     <user answer verbatim>
+
+     ## Q2
+     ...
+     ```
+   - When the interview is done, commit it: `git add specs/$SPEC_ID/interview.md && git commit -m "specify($SPEC_ID): record intent interview"`.
+   - The Forge MUST treat `interview.md` as authoritative intent context alongside `$ARGUMENTS`. If iteration 1's interview leaves a dimension unresolved, return to the interview before drafting; do NOT fill the gap with a guess.
+
    For each iteration `N`:
 
    ### Forge Phase (you are the Forge)
@@ -74,7 +100,7 @@ Feature description: $ARGUMENTS
       ```
       `PRIOR_GAUGE` is the path to the previous iteration's gauge artifact (skip on iter 1).
 
-   b. **Read the rendered prompt and follow it as your Forge instruction.** The rendered prompt already substitutes `{{CONSTITUTION}}`, `{{BASE_BRANCH}}`, prior `{{FEEDBACK}}`, and the description. Produce the spec document content per its instructions.
+   b. **Read the rendered prompt and follow it as your Forge instruction.** Also read `specs/$SPEC_ID/interview.md` (recorded in the pre-loop) and treat its Q&A pairs as authoritative intent — equal in weight to the original `$ARGUMENTS` description. The rendered prompt already substitutes `{{CONSTITUTION}}`, `{{BASE_BRANCH}}`, prior `{{FEEDBACK}}`, and the description. Produce the spec document content per its instructions. Do NOT introduce requirements that contradict the interview answers; do NOT mark items `[NEEDS CLARIFICATION]` for things the interview already resolved.
 
    c. Write the spec to `specs/$SPEC_ID/spec.md`.
 

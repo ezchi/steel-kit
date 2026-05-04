@@ -4,7 +4,9 @@ Your task is to create a detailed software specification based on the following 
 
 ## Output Rules
 
-CRITICAL: Output ONLY the Markdown document content. No conversational text, no explanations, no questions, no commentary. Do NOT ask for permissions or confirmations. Do NOT wrap output in code fences. Start directly with the document heading.
+CRITICAL: Once you start producing the spec document, output ONLY the Markdown document content — no conversational text, no explanations, no commentary, no code fences. Start directly with the document heading.
+
+Exception — Intent Interview phase: BEFORE drafting the document, if the slash command has instructed you to conduct an intent interview (see `specs/<id>/interview.md`), you MUST ask the user clarifying questions one at a time. **No assumptions, no guessing.** Read `specs/<id>/interview.md` if it exists and treat its Q&A pairs as authoritative intent. If any dimension (goal, constraints, expected output, success criteria) is still unresolved after the interview, ask the user — do NOT mark it `[NEEDS CLARIFICATION]` to avoid the question. Once the interview is settled, switch to document-only output.
 
 ## Project Constitution (AUTHORITATIVE — overrides conflicting review feedback)
 {{CONSTITUTION}}
