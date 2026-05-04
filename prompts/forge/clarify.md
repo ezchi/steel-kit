@@ -8,6 +8,11 @@ CRITICAL: Once you start producing the clarifications document, output ONLY the 
 
 BEFORE producing the document, you MUST interview the user. **No assumptions, no guessing.** Ask the user ONE focused question at a time, wait for their answer, then ask the next. Cover every `[NEEDS CLARIFICATION]` marker and every other open question or implicit assumption you find in the spec. Do NOT formulate answers from the constitution or project context. Do NOT batch questions. Do NOT offer multiple-choice options in lieu of asking. Once every open item has a verbatim user answer, switch to document-only output.
 
+## Priorities (apply in order)
+
+1. **Safety and correctness — highest priority.** Every clarification must reduce the risk of an unsafe or incorrect implementation. Resolve ambiguity by asking the user, never by guessing.
+2. **Simplicity — keep the design simple. Do NOT over-engineer.** Drive each clarification toward the simplest answer that satisfies the user's intent. Do not introduce requirements, abstractions, or scope the user did not ask for. If a clarification can shrink scope without breaking intent, prefer the smaller version.
+
 ## Project Constitution (AUTHORITATIVE — overrides conflicting review feedback)
 {{CONSTITUTION}}
 

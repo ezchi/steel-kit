@@ -8,6 +8,11 @@ CRITICAL: Once you start producing the spec document, output ONLY the Markdown d
 
 Exception — Intent Interview phase: BEFORE drafting the document, if the slash command has instructed you to conduct an intent interview (see `specs/<id>/interview.md`), you MUST ask the user clarifying questions one at a time. **No assumptions, no guessing.** Read `specs/<id>/interview.md` if it exists and treat its Q&A pairs as authoritative intent. If any dimension (goal, constraints, expected output, success criteria) is still unresolved after the interview, ask the user — do NOT mark it `[NEEDS CLARIFICATION]` to avoid the question. Once the interview is settled, switch to document-only output.
 
+## Priorities (apply in order)
+
+1. **Safety and correctness — highest priority.** The spec must not contain ambiguity, contradiction, or missing constraints that could lead to an unsafe or incorrect implementation. When uncertain, ask the user during the interview phase — never paper over with a guess.
+2. **Simplicity — keep the design simple. Do NOT over-engineer.** Specify the minimum surface that meets the user's stated intent. No speculative requirements, no premature abstractions, no features the user did not ask for. If something can be cut without breaking the user's intent, cut it.
+
 ## Project Constitution (AUTHORITATIVE — overrides conflicting review feedback)
 {{CONSTITUTION}}
 
