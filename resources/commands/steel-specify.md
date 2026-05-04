@@ -142,7 +142,42 @@ Feature description: $ARGUMENTS
    j. **Parse the verdict** from the last 10 lines of the gauge artifact. Look for `VERDICT: APPROVE` or `VERDICT: REVISE`.
 
    k. If **APPROVE**: break the loop, go to step 7.
-   l. If **REVISE**: `steel state iter --inc`, set `PRIOR_GAUGE=specs/$SPEC_ID/artifacts/specification/iter${N}-gauge.md`, loop back to step 6a (next iter).
+   l. If **REVISE**: `steel state iter --inc`, set `PRIOR_GAUGE=specs/$SPEC_ID/artifacts/specification/iter${N}-gauge.md`, then run the Complexity Gate (below) before looping back to step 6a.
+
+   ### Complexity Gate — iteration > 8 (simplicity principle)
+
+   After step 6l, check `state.iter`. The **first time** it crosses `> 8` (8 forge-gauge rounds completed without APPROVE), pause the loop. **A spec that won't converge in 8 iterations is too complex; it should be split.** Offer this gate at most once per workflow — if the user declines, do not offer again.
+
+   1. Read `specs/$SPEC_ID/spec.md` and the most recent gauge artifact. Identify which user stories, FRs, NFRs, or scope items are driving disagreement and could be deferred without breaking the user's core intent.
+
+   2. Ask the user verbatim (substituting your proposal):
+      > "This spec has gone through 8 forge-gauge iterations without approval — a red flag for over-complexity. Recommend splitting it.
+      >
+      > **Keep in this spec (core feature):**
+      > - <bulleted list — minimum that delivers the user's core intent>
+      >
+      > **Defer to follow-up specs:**
+      > - <one bullet per deferred item, with a one-line rationale>
+      >
+      > Confirm split? (y/N)"
+
+   3. Read the response.
+      - **Anything other than `y`:** do not split. Fall through to step 6m (Max-iter cap behavior). Do NOT offer the split again later in this workflow.
+      - **y:** apply the split:
+         i. Write `specs/$SPEC_ID/deferred.md` (overwrite if it exists), capturing each deferred item:
+            ```markdown
+            # Deferred Features — <SPEC_ID>
+
+            Items removed from spec `<SPEC_ID>` during a complexity-driven split on <YYYY-MM-DD>. Each is a candidate for a future `/steel-specify` workflow.
+
+            ## D1: <title>
+            - **Original spec section:** <heading or FR-N>
+            - **Rationale for deferral:** <one or two sentences>
+            - **Suggested follow-up entry point:** <one-line description for a future /steel-specify run>
+            ```
+         ii. Edit `specs/$SPEC_ID/spec.md` in place: remove the deferred user stories, FRs, NFRs, and acceptance criteria; tighten cross-references; ensure the trimmed spec is internally consistent and still satisfies the kept user intent.
+         iii. Commit: `git add specs/$SPEC_ID/spec.md specs/$SPEC_ID/deferred.md && git commit -m "specify($SPEC_ID): split — defer items to follow-up"`.
+         iv. Loop back to step 6a. The next Forge iteration starts from the simplified spec; clear `PRIOR_GAUGE` so the Forge does not chase feedback that referenced removed scope.
 
    ### Max-iter cap behavior
    m. If you hit `config.maxIterations` without APPROVE, ask the user verbatim:
