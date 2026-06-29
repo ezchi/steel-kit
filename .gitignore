@@ -8,3 +8,11 @@ dist/
 !.steel/constitution.md
 .claude/commands/steel-*
 .agents/skills/steel-*/
+
+# Steel-Kit per-iteration forge/gauge artifacts (keep top-level spec docs)
+specs/*/artifacts/
+
+# Local editor / tooling / release artifacts
+.gemini/
+.steel-kit-tabspaces-session.el
+release-notes.txt
