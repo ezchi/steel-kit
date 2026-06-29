@@ -15,7 +15,7 @@ Run `steel doctor` to perform a read-only health check of the current project. T
 4. **Stage files**: cumulative prerequisite files for the current workflow stage
 5. **State recovery**: detects recoverable state when `state.json` is missing
 6. **Canonical sources**: `resources/commands/`, `prompts/`, `templates/` existence
-7. **Generated surfaces**: Claude, Gemini, and Codex surface files present and current
+7. **Generated surfaces**: Claude, Antigravity, and Codex surface files present and current
 8. **Providers**: Forge/Gauge CLI availability on PATH
 9. **Auth**: provider-specific environment variables
 

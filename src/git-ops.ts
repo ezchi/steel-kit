@@ -1,60 +1,89 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { execa } from 'execa';
-import type { ResolvedGitConfig } from './config.js';
 import { validateComposedRef } from './git-config.js';
 import { log } from './utils.js';
 
-export async function initBranch(
-  specId: string,
-  projectRoot: string,
-  gitConfig: ResolvedGitConfig,
-): Promise<string> {
-  // Validate composed ref defensively
-  validateComposedRef(gitConfig.branchPrefix, specId);
+export interface InitBranchOptions {
+  /** Spec ID; gets composed with branchPrefix to produce the new branch name. */
+  specId: string;
+  /** Branch name to record as the per-spec base. Validated to exist locally or as origin/<name>. */
+  baseBranch: string;
+  /** Branch prefix from resolved git config (e.g., 'spec/' or 'feature/'). */
+  branchPrefix: string;
+  /** If provided, checkout this branch before forking. If absent, fork from current HEAD. */
+  from?: string;
+}
 
-  // Ensure working tree is clean before switching branches
+/**
+ * Create a new spec branch.
+ *
+ * Forks from current HEAD by default (or from `from` if provided). The
+ * `baseBranch` argument is recorded into state.json as the per-spec base — it
+ * is *not* automatically checked out. The caller (slash command) is responsible
+ * for prompting the user when current branch differs from the project default.
+ *
+ * Invariants:
+ *  - working tree is clean
+ *  - composed ref `<prefix><specId>` is a legal git ref
+ *  - `baseBranch` exists somewhere (locally or as origin/<name>)
+ */
+export async function initBranch(
+  opts: InitBranchOptions,
+  projectRoot: string,
+): Promise<{ branchName: string; baseBranch: string }> {
+  validateComposedRef(opts.branchPrefix, opts.specId);
+
   const clean = await ensureClean(projectRoot);
   if (!clean) {
-    throw new Error('Working tree has uncommitted changes. Commit or stash them before creating a new spec branch.');
+    throw new Error(
+      'Working tree has uncommitted changes. Commit or stash them before creating a new spec branch.',
+    );
   }
 
-  // Ensure baseBranch exists
-  const baseBranch = gitConfig.baseBranch;
-  const localExists = await execa('git', ['rev-parse', '--verify', baseBranch], {
+  // Ensure the recorded baseBranch exists somewhere reachable.
+  await ensureBranchExists(projectRoot, opts.baseBranch);
+
+  // Optional pre-fork checkout.
+  if (opts.from) {
+    await ensureBranchExists(projectRoot, opts.from);
+    await execa('git', ['checkout', opts.from], { cwd: projectRoot, stdin: 'ignore' });
+  }
+
+  const branchName = `${opts.branchPrefix}${opts.specId}`;
+  log.info(`Creating branch: ${branchName}`);
+  await execa('git', ['checkout', '-b', branchName], { cwd: projectRoot, stdin: 'ignore' });
+
+  return { branchName, baseBranch: opts.baseBranch };
+}
+
+/**
+ * Verify a branch exists locally; if not, try to create a local tracking branch
+ * from origin/<name>. Throws if neither is reachable.
+ */
+async function ensureBranchExists(projectRoot: string, branch: string): Promise<void> {
+  const localExists = await execa('git', ['rev-parse', '--verify', branch], {
     cwd: projectRoot,
     reject: false,
     stdin: 'ignore',
   });
+  if (localExists.exitCode === 0) return;
 
-  if (localExists.exitCode !== 0) {
-    // Check if remote-tracking branch exists
-    const remoteRef = `origin/${baseBranch}`;
-    const remoteExists = await execa('git', ['rev-parse', '--verify', remoteRef], {
-      cwd: projectRoot,
-      reject: false,
-      stdin: 'ignore',
-    });
-
-    if (remoteExists.exitCode === 0) {
-      log.info(`Creating local tracking branch '${baseBranch}' from '${remoteRef}'`);
-      await execa('git', ['branch', baseBranch, remoteRef], { cwd: projectRoot, stdin: 'ignore' });
-    } else {
-      throw new Error(
-        `Branch '${baseBranch}' does not exist locally or as remote-tracking branch 'origin/${baseBranch}'`
-      );
-    }
+  const remoteRef = `origin/${branch}`;
+  const remoteExists = await execa('git', ['rev-parse', '--verify', remoteRef], {
+    cwd: projectRoot,
+    reject: false,
+    stdin: 'ignore',
+  });
+  if (remoteExists.exitCode === 0) {
+    log.info(`Creating local tracking branch '${branch}' from '${remoteRef}'`);
+    await execa('git', ['branch', branch, remoteRef], { cwd: projectRoot, stdin: 'ignore' });
+    return;
   }
 
-  // Checkout base branch
-  await execa('git', ['checkout', baseBranch], { cwd: projectRoot, stdin: 'ignore' });
-
-  // Create new branch
-  const branchName = `${gitConfig.branchPrefix}${specId}`;
-  log.info(`Creating branch: ${branchName}`);
-  await execa('git', ['checkout', '-b', branchName], { cwd: projectRoot, stdin: 'ignore' });
-
-  return branchName;
+  throw new Error(
+    `Branch '${branch}' does not exist locally or as remote-tracking branch 'origin/${branch}'`,
+  );
 }
 
 export async function commitStep(
@@ -164,9 +193,13 @@ export async function checkIgnoredPaths(
   paths: string[],
 ): Promise<IgnoredPath[]> {
   if (paths.length === 0) return [];
+  // --no-index: report based on gitignore patterns alone, ignoring whether the
+  // path is already tracked. Without it, `git check-ignore` says "not ignored"
+  // for tracked files even when their parent dir matches an ignore rule — yet
+  // `git add` still refuses with the directory-level ignore error.
   const result = await execa(
     'git',
-    ['check-ignore', '-v', '--', ...paths],
+    ['check-ignore', '-v', '--no-index', '--', ...paths],
     { cwd: projectRoot, reject: false, stdin: 'ignore' },
   );
   // exit 0 = at least one path ignored; exit 1 = none ignored; other = error

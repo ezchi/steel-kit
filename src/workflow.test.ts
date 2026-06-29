@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execSync } from 'node:child_process';
-import { loadState } from './workflow.js';
+import { loadState, createInitialState, isCompletedWorkflow, type WorkflowState } from './workflow.js';
 import { tagStage } from './git-ops.js';
 import { resolveSpecId } from './git-config.js';
 import type { SteelConfig } from './config.js';
@@ -82,6 +82,120 @@ describe('loadState recovery', () => {
     const state = await loadState(tempDir);
     expect(state.specId).toBe('001-doctor');
     expect(state.branch).toBe('spec/001-doctor');
+  });
+});
+
+describe('loadState schema additions', () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = makeTempDir();
+  });
+
+  afterEach(() => {
+    if (existsSync(tempDir)) {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('round-trips baseBranch and skillsUsed when present in state.json', async () => {
+    writeFile(tempDir, '.steel/config.json', JSON.stringify({
+      forge: { provider: 'codex' },
+      gauge: { provider: 'codex' },
+      maxIterations: 5,
+      autoCommit: true,
+      specsDir: 'specs',
+      git: { branchPrefix: 'spec/', baseBranch: 'main' },
+    }));
+    writeFile(tempDir, '.steel/state.json', JSON.stringify({
+      currentStage: 'planning',
+      iteration: 2,
+      specId: '001-foo',
+      branch: 'spec/001-foo',
+      baseBranch: 'develop',
+      description: 'Test feature',
+      stages: {
+        specification: { status: 'complete' },
+        clarification: { status: 'complete' },
+        planning: { status: 'in_progress', iteration: 2 },
+        task_breakdown: { status: 'pending' },
+        implementation: { status: 'pending' },
+        validation: { status: 'pending' },
+        retrospect: { status: 'pending' },
+      },
+      skillsUsed: {
+        specification: ['systemverilog-core'],
+        planning: ['sv-gen', 'systemverilog-core'],
+      },
+    }));
+
+    const state = await loadState(tempDir);
+    expect(state.baseBranch).toBe('develop');
+    expect(state.skillsUsed?.specification).toEqual(['systemverilog-core']);
+    expect(state.skillsUsed?.planning).toEqual(['sv-gen', 'systemverilog-core']);
+    expect(state.skillsUsed?.implementation).toBeUndefined();
+  });
+
+  it('leaves baseBranch and skillsUsed undefined when absent', async () => {
+    writeFile(tempDir, '.steel/config.json', JSON.stringify({
+      forge: { provider: 'codex' },
+      gauge: { provider: 'codex' },
+      maxIterations: 5,
+      autoCommit: true,
+      specsDir: 'specs',
+      git: { branchPrefix: 'spec/', baseBranch: 'main' },
+    }));
+    writeFile(tempDir, '.steel/state.json', JSON.stringify({
+      currentStage: 'specification',
+      iteration: 1,
+      stages: {
+        specification: { status: 'pending' },
+        clarification: { status: 'pending' },
+        planning: { status: 'pending' },
+        task_breakdown: { status: 'pending' },
+        implementation: { status: 'pending' },
+        validation: { status: 'pending' },
+        retrospect: { status: 'pending' },
+      },
+    }));
+
+    const state = await loadState(tempDir);
+    expect(state.baseBranch).toBeUndefined();
+    expect(state.skillsUsed).toBeUndefined();
+  });
+
+  it('drops malformed skillsUsed entries (non-array, non-string members)', async () => {
+    writeFile(tempDir, '.steel/config.json', JSON.stringify({
+      forge: { provider: 'codex' },
+      gauge: { provider: 'codex' },
+      maxIterations: 5,
+      autoCommit: true,
+      specsDir: 'specs',
+      git: { branchPrefix: 'spec/', baseBranch: 'main' },
+    }));
+    writeFile(tempDir, '.steel/state.json', JSON.stringify({
+      currentStage: 'specification',
+      iteration: 1,
+      stages: {
+        specification: { status: 'pending' },
+        clarification: { status: 'pending' },
+        planning: { status: 'pending' },
+        task_breakdown: { status: 'pending' },
+        implementation: { status: 'pending' },
+        validation: { status: 'pending' },
+        retrospect: { status: 'pending' },
+      },
+      skillsUsed: {
+        specification: 'not-an-array',
+        planning: ['valid'],
+        implementation: [123, 'mixed'],
+      },
+    }));
+
+    const state = await loadState(tempDir);
+    expect(state.skillsUsed?.specification).toBeUndefined();
+    expect(state.skillsUsed?.planning).toEqual(['valid']);
+    expect(state.skillsUsed?.implementation).toBeUndefined();
   });
 });
 
@@ -248,5 +362,45 @@ describe('resolveSpecId', () => {
 
     const result = await resolveSpecId(tempDir, defaultConfig);
     expect(result).toBeNull();
+  });
+});
+
+describe('isCompletedWorkflow', () => {
+  it('returns true when retrospect.status is complete', () => {
+    const state = createInitialState();
+    state.stages.retrospect.status = 'complete';
+    expect(isCompletedWorkflow(state)).toBe(true);
+  });
+
+  it('returns false when retrospect.status is in_progress', () => {
+    const state = createInitialState();
+    state.stages.retrospect.status = 'in_progress';
+    expect(isCompletedWorkflow(state)).toBe(false);
+  });
+
+  it('returns false when retrospect.status is pending', () => {
+    const state = createInitialState();
+    expect(isCompletedWorkflow(state)).toBe(false);
+  });
+
+  it('returns false (no throw) when stages.retrospect is missing', () => {
+    const state = { stages: {} } as unknown as WorkflowState;
+    expect(isCompletedWorkflow(state)).toBe(false);
+  });
+
+  it('returns false (no throw) when stages itself is missing', () => {
+    const state = {} as unknown as WorkflowState;
+    expect(isCompletedWorkflow(state)).toBe(false);
+  });
+
+  it('returns false when all earlier stages complete but retrospect is pending', () => {
+    const state = createInitialState();
+    state.stages.specification.status = 'complete';
+    state.stages.clarification.status = 'complete';
+    state.stages.planning.status = 'complete';
+    state.stages.task_breakdown.status = 'complete';
+    state.stages.implementation.status = 'complete';
+    state.stages.validation.status = 'complete';
+    expect(isCompletedWorkflow(state)).toBe(false);
   });
 });

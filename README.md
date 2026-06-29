@@ -1,6 +1,6 @@
 # Steel-Kit
 
-A dual-agent AI development framework that orchestrates multiple LLM CLIs (Claude Code, Gemini CLI, OpenAI Codex) in a spec-driven development workflow.
+A dual-agent AI development framework that orchestrates multiple LLM CLIs (Claude Code, Antigravity CLI, OpenAI Codex) in a spec-driven development workflow.
 
 ## How It Works
 
@@ -41,7 +41,7 @@ Check progress anytime with `steel status`.
 - `steel run-all` — run all remaining stages in sequence (stops if human approval is declined)
 
 **Utility commands**:
-- `steel update` — refresh Claude/Gemini/Codex command files in the current project
+- `steel update` — refresh Claude/Antigravity/Codex command files in the current project
 - `steel upgrade` — upgrade the Steel-Kit CLI itself to the latest npm release
 - `steel clean` — remove artifacts of current workflow and reset state
 
@@ -81,7 +81,7 @@ This makes the `steel` command available globally from your checkout. Use this p
 At least one LLM CLI must be installed and authenticated:
 
 - **Claude Code**: `npm install -g @anthropic-ai/claude-code` + `ANTHROPIC_API_KEY` or `claude login`
-- **Gemini CLI**: `npm install -g @anthropic-ai/gemini-cli` + `GEMINI_API_KEY` or `gemini login`
+- **Antigravity CLI** (`agy`): install from <https://antigravity.google> + `agy login` (account-based auth)
 - **Codex CLI**: `npm install -g @openai/codex` + `CODEX_API_KEY` or `codex login`
 
 ## Quick Start
@@ -90,15 +90,15 @@ At least one LLM CLI must be installed and authenticated:
 
 Run `steel init` inside your project (must be a git repo). You will be prompted for exactly **2 choices**, then everything else is automatic:
 
-1. **Select Forge (primary) LLM provider** — `claude`, `gemini`, or `codex`
-2. **Select Gauge (inspector) LLM provider** — `claude`, `gemini`, or `codex`
+1. **Select Forge (primary) LLM provider** — `claude`, `agy`, or `codex`
+2. **Select Gauge (inspector) LLM provider** — `claude`, `agy`, or `codex`
 
 After selection, the tool will automatically:
 - Verify both CLIs are installed and authenticated (warns if not)
 - Create `.steel/` directory with `config.json`, `constitution.md`, and `.gitignore`
 - Install workflow commands for:
   - Claude Code in `.claude/commands/`
-  - Agent skills in `.agents/skills/` (shared by Gemini CLI and Codex)
+  - Agent skills in `.agents/skills/` (shared by Antigravity CLI and Codex)
 - Auto-commit the initialization to git
 
 No LLM calls are made during init — it completes instantly.
@@ -145,9 +145,9 @@ steel retrospect
 
 ```yaml
 forge:
-  provider: claude    # claude | gemini | codex
+  provider: claude    # claude | agy | codex
 gauge:
-  provider: gemini    # claude | gemini | codex
+  provider: agy       # claude | agy | codex
 maxIterations: 5
 autoCommit: true
 specsDir: specs
@@ -172,11 +172,11 @@ steel update
 
 `steel update` installs or refreshes:
 - Claude Code commands in `.claude/commands/`
-- Agent skills in `.agents/skills/` (shared by Gemini CLI and Codex)
+- Agent skills in `.agents/skills/` (shared by Antigravity CLI and Codex)
 
 ## Codex CLI Notes
 
-Steel-Kit derives Codex skills from the same canonical workflow command files used for Claude Code and Gemini CLI, so the three agent surfaces stay aligned.
+Steel-Kit derives Codex skills from the same canonical workflow command files used for Claude Code and Antigravity CLI, so the three agent surfaces stay aligned.
 
 After running `steel init` or `steel update`:
 - Restart Codex CLI if it was already open
@@ -185,7 +185,7 @@ After running `steel init` or `steel update`:
 
 ## CLI Command Integration
 
-Steel-Kit installs matching workflow commands for Claude Code and Gemini CLI, plus matching skills for Codex CLI, from the same canonical source files in `resources/commands/`:
+Steel-Kit installs matching workflow commands for Claude Code and Antigravity CLI, plus matching skills for Codex CLI, from the same canonical source files in `resources/commands/`:
 
 - `steel-init` / `/steel-init` / `$steel-init` — Initialize Steel-Kit
 - `steel-constitution` / `/steel-constitution` / `$steel-constitution` — Generate project constitution via LLM

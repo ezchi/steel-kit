@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { ClaudeProvider } from './claude.js';
-import { GeminiProvider } from './gemini.js';
+import { AgyProvider } from './agy.js';
 import { CodexProvider } from './codex.js';
 
 export interface InvokeOptions {
@@ -9,11 +9,31 @@ export interface InvokeOptions {
   allowFileEdits?: boolean;
   workingDir?: string;
   systemPrompt?: string;
+  /**
+   * Session ID to reuse across calls. When set on a fresh call the provider
+   * starts (or adopts) a session with this ID; on a resume call it continues
+   * the existing session, keeping prior context warm instead of cold-loading
+   * config and re-exploring the project every invocation.
+   */
+  sessionId?: string;
+  /** When true, resume the existing `sessionId` rather than create a new one. */
+  resumeSession?: boolean;
+}
+
+export interface InvokeResult {
+  /** The model's textual output. */
+  output: string;
+  /**
+   * The effective session ID for this call. For providers that accept a
+   * caller-supplied ID this echoes `opts.sessionId`; for providers that
+   * generate their own (e.g. codex) this is the captured ID to resume next.
+   */
+  sessionId?: string;
 }
 
 export interface LLMProvider {
   readonly name: string;
-  invoke(prompt: string, opts?: InvokeOptions): Promise<string>;
+  invoke(prompt: string, opts?: InvokeOptions): Promise<InvokeResult>;
   check(): Promise<boolean>;
 }
 
@@ -43,7 +63,7 @@ export async function writePromptFile(
 
 const registry: Record<string, () => LLMProvider> = {
   claude: () => new ClaudeProvider(),
-  gemini: () => new GeminiProvider(),
+  agy: () => new AgyProvider(),
   codex: () => new CodexProvider(),
 };
 

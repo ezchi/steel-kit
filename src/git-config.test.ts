@@ -11,7 +11,7 @@ import type { SteelConfig } from './config.js';
 function makeConfig(git?: SteelConfig['git']): SteelConfig {
   return {
     forge: { provider: 'claude' },
-    gauge: { provider: 'gemini' },
+    gauge: { provider: 'agy' },
     maxIterations: 5,
     autoCommit: true,
     specsDir: 'specs',
@@ -130,6 +130,26 @@ describe('validateBranchPrefix', () => {
 
   it('rejects just "/" as prefix', () => {
     expect(() => validateBranchPrefix('/')).toThrow("cannot be just '/'");
+  });
+
+  it('rejects just "-" as prefix', () => {
+    expect(() => validateBranchPrefix('-')).toThrow("cannot be just '-'");
+  });
+
+  it("rejects prefix ending in alphanumeric (no separator)", () => {
+    expect(() => validateBranchPrefix('feature')).toThrow("must end with '/' or '-'");
+  });
+
+  it('rejects prefix ending in underscore', () => {
+    expect(() => validateBranchPrefix('feature_')).toThrow("must end with '/' or '-'");
+  });
+
+  it("rejects prefix ending in '.'", () => {
+    expect(() => validateBranchPrefix('feature.')).toThrow("must end with '/' or '-'");
+  });
+
+  it("error message suggests workflow: gitflow when prefix lacks separator", () => {
+    expect(() => validateBranchPrefix('feature')).toThrow('workflow: gitflow');
   });
 });
 

@@ -1,13 +1,14 @@
 import { execa } from 'execa';
-import type { LLMProvider, InvokeOptions } from './index.js';
+import type { LLMProvider, InvokeOptions, InvokeResult } from './index.js';
 import { writePromptFile } from './index.js';
 import { registerPid, unregisterPid } from '../process-tracker.js';
+import { RateLimitError, isRateLimitMessage } from '../errors.js';
 import { log } from '../utils.js';
 
 export class ClaudeProvider implements LLMProvider {
   readonly name = 'claude';
 
-  async invoke(prompt: string, opts?: InvokeOptions): Promise<string> {
+  async invoke(prompt: string, opts?: InvokeOptions): Promise<InvokeResult> {
     const args: string[] = ['-p', '--output-format', 'text'];
 
     if (opts?.model) {
@@ -20,6 +21,12 @@ export class ClaudeProvider implements LLMProvider {
 
     if (opts?.systemPrompt) {
       args.push('--append-system-prompt', opts.systemPrompt);
+    }
+
+    // Session reuse: resume an existing session to keep context warm, or
+    // create one with the caller-supplied ID so the next call can resume it.
+    if (opts?.sessionId) {
+      args.push(opts.resumeSession ? '--resume' : '--session-id', opts.sessionId);
     }
 
     // Write prompt to file and let claude read it directly (no stdin piping)
@@ -45,12 +52,16 @@ export class ClaudeProvider implements LLMProvider {
       const result = await proc;
 
       if (result.exitCode !== 0) {
+        const detail = result.stderr || result.stdout || '';
+        if (isRateLimitMessage(detail)) {
+          throw new RateLimitError(this.name, detail.trim());
+        }
         throw new Error(
           `Claude CLI failed (exit ${result.exitCode}): ${result.stderr}`,
         );
       }
 
-      return result.stdout;
+      return { output: result.stdout, sessionId: opts?.sessionId };
     } finally {
       if (proc.pid) unregisterPid(proc.pid);
     }

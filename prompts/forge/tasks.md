@@ -38,9 +38,16 @@ Format each task as:
 N. [Task Title]
    Description: What needs to be done
    Files: Which files will be created or modified
+   Type: implementation | verification
    Dependencies: Task numbers this depends on (or "none")
    Verification: How to verify this task is complete
 ```
+
+**Type field semantics:**
+- `implementation` (default): the task creates or modifies source files. Pick this whenever the task's output includes any file change under version control.
+- `verification`: the task's sole purpose is to run a tool or command and confirm its output (e.g. `basedpyright .` returns 0 errors, `cargo build` succeeds, `eslint --max-warnings 0 src/` passes). No source files are created or modified. The `Files:` line for these tasks must read `none`.
+
+When in doubt, use `implementation`. The Gauge applies a heavier review template to `implementation` tasks; misclassifying a code-changing task as `verification` will skip security/correctness review.
 
 Order tasks so that dependencies come first.
 Aim for 3-15 tasks depending on scope.

@@ -1,5 +1,6 @@
 import { getProvider } from './providers/index.js';
 import type { SteelConfig } from './config.js';
+import { resolveGitConfig } from './git-config.js';
 import { renderTemplate } from './template.js';
 import { log } from './utils.js';
 
@@ -18,6 +19,7 @@ export interface ForgeContext {
   taskContent?: string;
   priorFeedback?: string;
   constitution?: string;
+  baseBranch?: string;
   projectRoot: string;
 }
 
@@ -26,6 +28,9 @@ export async function forgeExecute(
   ctx: ForgeContext,
 ): Promise<ForgeResult> {
   const provider = getProvider(config.forge.provider);
+
+  // Resolve base branch: prefer per-spec state.baseBranch, fall back to config default.
+  const baseBranch = ctx.baseBranch ?? resolveGitConfig(config).baseBranch;
 
   // Build template variables
   const vars: Record<string, string> = {
@@ -36,9 +41,10 @@ export async function forgeExecute(
     PLAN: ctx.planContent ?? '',
     TASK: ctx.taskContent ?? '',
     FEEDBACK: ctx.priorFeedback
-      ? `## Prior Review Feedback\nCritically evaluate each item below. Accept feedback that improves quality and aligns with the constitution. REJECT feedback that contradicts the constitution or adds unnecessary complexity. Do NOT blindly accept all suggestions.\n\n${ctx.priorFeedback}`
+      ? `## Prior Review Feedback\nCritically evaluate each item below. Accept feedback that improves quality and aligns with the constitution. REJECT feedback that contradicts the constitution or adds unnecessary complexity. Do NOT blindly accept all suggestions.\n\nWhen you accept an item, audit EVERY site coupled to it before writing the revision: search the artifact (and any artifact it references) for every name, flag, command, or string named in the feedback, and apply the fix consistently across all matches. A single-site fix that leaves a coupled site stale introduces a NEW defect and forces another iteration.\n\n${ctx.priorFeedback}`
       : '',
     CONSTITUTION: ctx.constitution ?? '',
+    BASE_BRANCH: baseBranch,
   };
 
   // Map stage to prompt template name
@@ -61,7 +67,7 @@ export async function forgeExecute(
   );
   log.info('Waiting for LLM response (this may take a few minutes)...');
 
-  const output = await provider.invoke(prompt, {
+  const { output } = await provider.invoke(prompt, {
     model: config.forge.model,
     allowFileEdits: ctx.stage === 'implementation',
     workingDir: ctx.projectRoot,
@@ -122,6 +128,7 @@ function buildFallbackPrompt(ctx: ForgeContext): string {
   if (ctx.priorFeedback) {
     parts.push(`\n## Prior Review Feedback`);
     parts.push(`Critically evaluate each item below. Accept feedback that improves quality and aligns with the constitution. REJECT feedback that contradicts the constitution or adds unnecessary complexity.`);
+    parts.push(`When you accept an item, audit EVERY site coupled to it before writing the revision: search the artifact (and any artifact it references) for every name, flag, command, or string named in the feedback, and apply the fix consistently across all matches. A single-site fix that leaves a coupled site stale introduces a NEW defect and forces another iteration.`);
     parts.push(ctx.priorFeedback);
   }
 

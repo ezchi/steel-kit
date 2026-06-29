@@ -309,9 +309,18 @@ async function cleanupStaleGeminiCommands(projectRoot: string): Promise<void> {
 
 async function ensureRootGitignore(projectRoot: string): Promise<string | null> {
   const gitignorePath = resolve(projectRoot, '.gitignore');
-  const rules = [
-    '.claude/commands/steel-*',
-    '.agents/skills/steel-*',
+  // Each section is a labeled group of patterns. Top-level spec docs
+  // (spec.md, plan.md, tasks.md, ...) and stage tags remain tracked; only the
+  // per-iteration forge/gauge artifacts under specs/<id>/artifacts/ are ignored.
+  const sections: { header: string; rules: string[] }[] = [
+    {
+      header: '# Steel-Kit ephemeral commands',
+      rules: ['.claude/commands/steel-*', '.agents/skills/steel-*'],
+    },
+    {
+      header: '# Steel-Kit per-iteration forge/gauge artifacts',
+      rules: ['specs/*/artifacts/'],
+    },
   ];
 
   let content = '';
@@ -321,20 +330,25 @@ async function ensureRootGitignore(projectRoot: string): Promise<string | null> 
     // If .gitignore doesn't exist, we create it and return the path
   }
 
-  const missingRules = rules.filter((rule) => !content.includes(rule));
-  if (missingRules.length === 0) return null;
+  const hasMissing = sections.some((s) =>
+    s.rules.some((rule) => !content.includes(rule)),
+  );
+  if (!hasMissing) return null;
 
-  log.info('Updating root .gitignore to exclude ephemeral Steel-Kit commands...');
+  log.info('Updating root .gitignore to exclude ephemeral Steel-Kit files...');
 
-  const header = '# Steel-Kit ephemeral commands';
   let newContent = content;
-  if (!content.includes(header)) {
-    newContent = newContent.trim() + (newContent ? '\n\n' : '') + header + '\n';
-  }
+  for (const { header, rules } of sections) {
+    const missingRules = rules.filter((rule) => !newContent.includes(rule));
+    if (missingRules.length === 0) continue;
 
-  for (const rule of missingRules) {
-    if (!newContent.includes(rule)) {
-      newContent += rule + '\n';
+    if (!newContent.includes(header)) {
+      newContent = newContent.trim() + (newContent ? '\n\n' : '') + header + '\n';
+    }
+    for (const rule of missingRules) {
+      if (!newContent.includes(rule)) {
+        newContent += rule + '\n';
+      }
     }
   }
 

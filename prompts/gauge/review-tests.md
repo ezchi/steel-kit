@@ -17,9 +17,11 @@ CRITICAL: Output ONLY the review content. No conversational text, no preamble, n
 
 ## Review Criteria
 
+**Do NOT re-run the tests yourself.** The Forge already executed them and reported the verbatim pass/fail output. Your job is to verify the *claims* about test results by reading the captured output and the test files — checking whether tests actually exercise what they claim, whether assertions are trivially true, whether mocks paper over real logic. Re-running the suite is wasted effort and outside the Gauge's role.
+
 Evaluate the validation results against:
 
-1. **Test Results**: Do all tests pass? Are failures investigated?
+1. **Test Results**: Do the reported results match the verbatim output? Are claimed PASSes backed by real assertions, not trivial true-checks or mocked-away logic? Are claimed FAILs explained accurately?
 2. **Requirement Coverage**: Is every functional requirement (FR-*) verified?
 3. **Acceptance Criteria**: Is every acceptance criterion from the spec verified?
 4. **Edge Cases**: Are boundary conditions tested?

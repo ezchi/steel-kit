@@ -38,11 +38,22 @@ export function validateBranchPrefix(value: string): void {
   if (value === '') {
     throw new Error('Invalid branchPrefix: value must be non-empty');
   }
-  // Branch prefixes allow trailing / (e.g. "spec/", "feature/")
-  // Check the value without trailing slash for other rules
-  const check = value.endsWith('/') ? value.slice(0, -1) : value;
+  // Branch prefixes must end with a separator. We accept '/' (namespace,
+  // git-flow style) and '-' (inline, e.g. "eda-"). A prefix ending in
+  // alphanumeric (e.g. "feature") would concatenate with the spec ID into a
+  // garbled branch name like "feature001-foo" — almost certainly not what the
+  // user wants.
+  const lastChar = value.slice(-1);
+  if (lastChar !== '/' && lastChar !== '-') {
+    throw new Error(
+      `Invalid branchPrefix '${value}': must end with '/' or '-'. ` +
+        `Did you mean '${value}/'? Or set 'workflow: gitflow' in .steel/config.json to use the preset.`,
+    );
+  }
+  // Strip the trailing separator before applying the remaining ref-name rules.
+  const check = value.slice(0, -1);
   if (check === '') {
-    throw new Error(`Invalid branchPrefix '${value}': prefix cannot be just '/'`);
+    throw new Error(`Invalid branchPrefix '${value}': prefix cannot be just '${lastChar}'`);
   }
   const violation = describeViolation(check);
   if (violation && violation !== 'value must be non-empty') {
