@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { loadConfig } from '../src/config.js';
 import { getProvider } from '../src/providers/index.js';
+import { RateLimitError } from '../src/errors.js';
 import { die, log } from '../src/utils.js';
 
 export interface RunForgeOpts {
@@ -22,11 +23,21 @@ export async function cmdRunForge(opts: RunForgeOpts): Promise<void> {
   }
 
   log.step(`Forge (${provider.name}) running with prompt at ${opts.promptFile}`);
-  const result = await provider.invoke(prompt, {
-    model: config.forge.model,
-    allowFileEdits: opts.allowEdits,
-    workingDir: projectRoot,
-  });
+  let result: string;
+  try {
+    ({ output: result } = await provider.invoke(prompt, {
+      model: config.forge.model,
+      allowFileEdits: opts.allowEdits,
+      workingDir: projectRoot,
+    }));
+  } catch (err) {
+    if (err instanceof RateLimitError) {
+      log.error(`Forge provider (${err.provider}) reached a rate/usage limit:`);
+      log.error(`  ${err.detail || err.message}`);
+      die('Rate limit reached. Stopped — retry once the limit resets.');
+    }
+    throw err;
+  }
 
   if (opts.output) {
     await writeFile(opts.output, result, 'utf-8');

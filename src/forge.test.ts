@@ -32,7 +32,7 @@ vi.mock('./providers/index.js', () => ({
     name: 'fake',
     invoke: async (prompt: string) => {
       captured.prompt = prompt;
-      return 'fake forge output';
+      return { output: 'fake forge output' };
     },
     check: async () => true,
   }),

@@ -23,5 +23,5 @@ export async function cmdUpgrade(): Promise<void> {
   }
 
   log.success('Steel-Kit upgraded successfully.');
-  log.info('Run `steel update` inside each project to refresh Claude/Gemini/Codex command files.');
+  log.info('Run `steel update` inside each project to refresh Claude/Antigravity/Codex command files.');
 }

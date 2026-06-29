@@ -69,7 +69,7 @@ program
 
 program
   .command('update')
-  .description('Refresh Claude/Gemini/Codex command files in the current project')
+  .description('Refresh Claude/Antigravity/Codex command files in the current project')
   .action(cmdUpdate);
 
 program
@@ -183,7 +183,7 @@ program
   .command('run-forge')
   .description('Invoke the Forge LLM with a rendered prompt file')
   .requiredOption('--prompt-file <path>', 'Path to rendered prompt')
-  .option('--provider <name>', 'Override config.forge.provider (claude|gemini|codex)')
+  .option('--provider <name>', 'Override config.forge.provider (claude|agy|codex)')
   .option('--output <path>', 'Write LLM output to file (default: stdout)')
   .option('--allow-edits', 'Allow the provider to write files (implementation stage)')
   .action((opts: { promptFile: string; provider?: string; output?: string; allowEdits?: boolean }) =>
@@ -194,7 +194,7 @@ program
   .command('run-gauge')
   .description('Invoke the Gauge LLM with a rendered review prompt file')
   .requiredOption('--prompt-file <path>', 'Path to rendered review prompt')
-  .option('--provider <name>', 'Override config.gauge.provider (claude|gemini|codex)')
+  .option('--provider <name>', 'Override config.gauge.provider (claude|agy|codex)')
   .option('--output <path>', 'Write LLM output to file (default: stdout)')
   .action((opts: { promptFile: string; provider?: string; output?: string }) =>
     cmdRunGauge(opts),

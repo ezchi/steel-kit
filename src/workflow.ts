@@ -1,6 +1,7 @@
 import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { execa } from 'execa';
 import {
   type SteelConfig,
@@ -9,8 +10,8 @@ import {
   getSteelDir,
   loadConfig,
 } from './config.js';
-import { forgeExecute, type ForgeContext } from './forge.js';
-import { gaugeReview, type GaugeContext } from './gauge.js';
+import { forgeExecute, type ForgeContext, type ForgeResult } from './forge.js';
+import { gaugeReview, type GaugeContext, type GaugeResult } from './gauge.js';
 import {
   commitStep,
   getCurrentBranch,
@@ -18,6 +19,7 @@ import {
   tagStage,
 } from './git-ops.js';
 import { log, confirm, die } from './utils.js';
+import { RateLimitError } from './errors.js';
 
 // -- Stage Definitions --
 
@@ -37,6 +39,8 @@ interface StageInfo {
   iteration?: number;
   startedAt?: string;
   completedAt?: string;
+  /** Gauge session ID, reused across this stage's iterations (warm context). */
+  gaugeSessionId?: string;
 }
 
 export interface WorkflowState {
@@ -131,6 +135,9 @@ function normalizeState(raw: any): WorkflowState {
         iteration: raw.stages[stage].iteration,
         startedAt: raw.stages[stage].startedAt,
         completedAt: raw.stages[stage].completedAt,
+        gaugeSessionId: typeof raw.stages[stage].gaugeSessionId === 'string'
+          ? raw.stages[stage].gaugeSessionId
+          : undefined,
       };
     }
   }
@@ -332,6 +339,28 @@ export interface LoopContext {
   constitution?: string;
 }
 
+/**
+ * If `err` is a rate/usage-limit error, report it clearly, persist state so the
+ * stage can be resumed later, and halt the whole workflow. Otherwise rethrow.
+ */
+async function haltIfRateLimited(
+  err: unknown,
+  role: 'Forge' | 'Gauge',
+  projectRoot: string,
+  state: WorkflowState,
+): Promise<never> {
+  if (err instanceof RateLimitError) {
+    log.error(`${role} provider (${err.provider}) reached a rate/usage limit:`);
+    log.error(`  ${err.detail || err.message}`);
+    log.warn(
+      'Stopping the workflow. State has been saved — re-run the same command to resume this stage once the limit resets.',
+    );
+    await saveState(projectRoot, state);
+    die(`Rate limit reached on ${role}. Stopped at stage '${state.currentStage}' iteration ${state.iteration}.`);
+  }
+  throw err;
+}
+
 export async function runForgeGaugeLoop(
   projectRoot: string,
   config: SteelConfig,
@@ -345,6 +374,16 @@ export async function runForgeGaugeLoop(
   state.stages[stage].startedAt = new Date().toISOString();
 
   let priorFeedback: string | undefined;
+
+  // Gauge session reuse: keep one session per stage so iteration 2+ resumes
+  // the same conversation (warm context) instead of cold-loading every time.
+  // A fresh stage entry (iteration 1) discards any stale ID; a mid-stage
+  // restart (iteration > 1) keeps the persisted ID so resume still works.
+  let gaugeSessionId =
+    state.iteration > 1 ? state.stages[stage].gaugeSessionId : undefined;
+  if (state.iteration <= 1) {
+    state.stages[stage].gaugeSessionId = undefined;
+  }
 
   for (let iter = state.iteration; iter <= maxIter; iter++) {
     state.iteration = iter;
@@ -367,7 +406,13 @@ export async function runForgeGaugeLoop(
       projectRoot,
     };
 
-    const forgeResult = await forgeExecute(config, forgeCtx);
+    let forgeResult: ForgeResult;
+    try {
+      forgeResult = await forgeExecute(config, forgeCtx);
+    } catch (err) {
+      await haltIfRateLimited(err, 'Forge', projectRoot, state);
+      throw err; // unreachable: haltIfRateLimited always exits or rethrows
+    }
 
     // Save forge artifact
     log.info('Saving forge output...');
@@ -409,6 +454,8 @@ export async function runForgeGaugeLoop(
     }
 
     // -- Gauge Phase --
+    const resumeSession = gaugeSessionId != null;
+    const sessionId = gaugeSessionId ?? randomUUID();
     const gaugeCtx: GaugeContext = {
       stage,
       iteration: iter,
@@ -418,9 +465,23 @@ export async function runForgeGaugeLoop(
       planContent: loopCtx.planContent,
       constitution: loopCtx.constitution,
       projectRoot,
+      sessionId,
+      resumeSession,
     };
 
-    const gaugeResult = await gaugeReview(config, gaugeCtx);
+    let gaugeResult: GaugeResult;
+    try {
+      gaugeResult = await gaugeReview(config, gaugeCtx);
+    } catch (err) {
+      await haltIfRateLimited(err, 'Gauge', projectRoot, state);
+      throw err; // unreachable: haltIfRateLimited always exits or rethrows
+    }
+
+    // Persist the effective session ID (codex generates its own; claude
+    // echoes ours; agy does not support resume) so the next iteration — even
+    // after a restart — can resume it where supported.
+    gaugeSessionId = gaugeResult.sessionId ?? sessionId;
+    state.stages[stage].gaugeSessionId = gaugeSessionId;
 
     // Save gauge artifact
     log.info('Saving gauge review...');

@@ -67,7 +67,7 @@ export async function forgeExecute(
   );
   log.info('Waiting for LLM response (this may take a few minutes)...');
 
-  const output = await provider.invoke(prompt, {
+  const { output } = await provider.invoke(prompt, {
     model: config.forge.model,
     allowFileEdits: ctx.stage === 'implementation',
     workingDir: ctx.projectRoot,

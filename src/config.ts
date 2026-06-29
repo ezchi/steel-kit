@@ -37,13 +37,19 @@ export interface SteelConfig {
 
 const DEFAULT_CONFIG: SteelConfig = {
   forge: { provider: 'claude' },
-  gauge: { provider: 'gemini' },
+  gauge: { provider: 'agy' },
   maxIterations: 5,
   autoCommit: true,
   specsDir: 'specs',
 };
 
-const PROVIDERS = ['claude', 'gemini', 'codex'];
+const PROVIDERS = ['claude', 'agy', 'codex'];
+
+// The Gemini CLI was discontinued and replaced by the Antigravity CLI (`agy`).
+// Transparently migrate legacy configs so they keep working.
+function migrateLegacyProvider(name: string): string {
+  return name === 'gemini' ? 'agy' : name;
+}
 
 export function getSteelDir(projectRoot: string): string {
   return resolve(projectRoot, '.steel');
@@ -130,6 +136,17 @@ export async function loadConfig(projectRoot: string): Promise<SteelConfig> {
   }
   if (Object.keys(gitEnv).length > 0) {
     config.git = { ...(config.git ?? {}), ...gitEnv };
+  }
+
+  // Migrate the discontinued `gemini` provider to `agy` (Antigravity CLI).
+  for (const role of ['forge', 'gauge'] as const) {
+    const migrated = migrateLegacyProvider(config[role].provider);
+    if (migrated !== config[role].provider) {
+      log.warn(
+        `Provider 'gemini' for ${role} is discontinued; using 'agy' (Antigravity CLI) instead. Update your config to silence this.`,
+      );
+      config[role].provider = migrated;
+    }
   }
 
   return config;

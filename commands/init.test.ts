@@ -76,7 +76,7 @@ describe('cmdInit git config', () => {
     branchPrefix?: string;
   }) {
     const forge = opts?.forge ?? 'claude';
-    const gauge = opts?.gauge ?? 'gemini';
+    const gauge = opts?.gauge ?? 'agy';
     const baseBranch = opts?.baseBranch ?? 'main';
     const branchPrefix = opts?.branchPrefix ?? 'spec/';
 
@@ -129,13 +129,13 @@ describe('cmdInit git config', () => {
 
     // On re-init, shouldWriteFile will prompt for overwrite — allow config but skip others
     confirmMock.mockResolvedValue(false);
-    setupPrompts({ forge: 'claude', gauge: 'gemini' });
+    setupPrompts({ forge: 'claude', gauge: 'agy' });
     await cmdInit();
 
     const config = readConfig();
     // Provider selections are updated from interactive prompts
     expect(config.forge.provider).toBe('claude');
-    expect(config.gauge.provider).toBe('gemini');
+    expect(config.gauge.provider).toBe('agy');
     // Existing values preserved (not overwritten with defaults)
     expect(config.maxIterations).toBe(10);
     expect(config.autoCommit).toBe(false);
@@ -167,7 +167,7 @@ describe('cmdInit git config', () => {
     // select: forge, gauge
     selectMock
       .mockResolvedValueOnce('claude')
-      .mockResolvedValueOnce('gemini');
+      .mockResolvedValueOnce('agy');
 
     // input: first baseBranch is invalid (main~1), second is valid (main)
     // then branchPrefix is valid (spec/)
@@ -187,7 +187,7 @@ describe('cmdInit git config', () => {
   it('invalid branchPrefix re-prompts (FR-26)', async () => {
     selectMock
       .mockResolvedValueOnce('claude')
-      .mockResolvedValueOnce('gemini');
+      .mockResolvedValueOnce('agy');
 
     // input: baseBranch valid, then invalid prefix (feat..ure/), then valid
     inputMock

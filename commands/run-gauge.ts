@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { loadConfig } from '../src/config.js';
 import { getProvider } from '../src/providers/index.js';
+import { RateLimitError } from '../src/errors.js';
 import { die, log } from '../src/utils.js';
 
 export interface RunGaugeOpts {
@@ -21,10 +22,20 @@ export async function cmdRunGauge(opts: RunGaugeOpts): Promise<void> {
   }
 
   log.step(`Gauge (${provider.name}) reviewing with prompt at ${opts.promptFile}`);
-  const result = await provider.invoke(prompt, {
-    model: config.gauge.model,
-    workingDir: projectRoot,
-  });
+  let result: string;
+  try {
+    ({ output: result } = await provider.invoke(prompt, {
+      model: config.gauge.model,
+      workingDir: projectRoot,
+    }));
+  } catch (err) {
+    if (err instanceof RateLimitError) {
+      log.error(`Gauge provider (${err.provider}) reached a rate/usage limit:`);
+      log.error(`  ${err.detail || err.message}`);
+      die('Rate limit reached. Stopped — retry once the limit resets.');
+    }
+    throw err;
+  }
 
   if (opts.output) {
     await writeFile(opts.output, result, 'utf-8');

@@ -106,14 +106,15 @@ function getRequiredFiles(stage: StageName): string[] {
 
 const PROVIDER_CLI: Record<string, string> = {
   claude: 'claude',
-  gemini: 'gemini',
+  agy: 'agy',
   codex: 'codex',
 };
 
 const PROVIDER_ENV_VARS: Record<string, string[]> = {
   claude: ['ANTHROPIC_API_KEY'],
   codex: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
-  gemini: ['GEMINI_API_KEY'],
+  // agy (Antigravity CLI) authenticates via account login, not an env var.
+  agy: [],
 };
 
 // ---------------------------------------------------------------------------
@@ -557,7 +558,7 @@ async function checkSurfaces(projectRoot: string): Promise<Diagnostic[]> {
       `Claude command ${file}`,
     );
 
-    // Agent skills: SKILL.md render (shared by Gemini CLI and Codex)
+    // Agent skills: SKILL.md render (shared by Antigravity CLI and Codex)
     const skillPath = resolve(
       projectRoot,
       '.agents',
@@ -622,7 +623,7 @@ async function checkProviders(
   config: SteelConfig | null,
 ): Promise<Diagnostic[]> {
   const diags: Diagnostic[] = [];
-  const allProviders = ['claude', 'gemini', 'codex'];
+  const allProviders = ['claude', 'agy', 'codex'];
 
   const configuredSet = new Set<string>();
   if (config) {
@@ -664,10 +665,21 @@ async function checkProviders(
 
 function checkAuth(config: SteelConfig | null): Diagnostic[] {
   const diags: Diagnostic[] = [];
-  const allProviders = ['claude', 'gemini', 'codex'];
+  const allProviders = ['claude', 'agy', 'codex'];
 
   for (const provider of allProviders) {
     const envVars = PROVIDER_ENV_VARS[provider];
+
+    // Providers with no API-key env var authenticate via account login.
+    if (envVars.length === 0) {
+      diags.push({
+        id: 'provider-auth',
+        status: 'pass',
+        summary: `${provider} uses account-based auth (no API key env var required)`,
+      });
+      continue;
+    }
+
     const hasAny = envVars.some((v) => !!process.env[v]);
 
     if (hasAny) {

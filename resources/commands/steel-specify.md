@@ -126,7 +126,7 @@ Feature description: $ARGUMENTS
 
    g. Run the Gauge **per `config.gauge.provider`**:
       - If `claude`: **spawn a Task subagent with a fresh context** (use the `Agent` tool with `subagent_type: general-purpose`). Pass the prompt: `Read and follow the instructions in .steel/tmp/specify-iter${N}-gauge-prompt.md. Output the review markdown to stdout. End with exactly one VERDICT line.` This isolates the review from the parent session that produced the Forge output. Capture the subagent's response.
-      - If `gemini` or `codex`: `steel run-gauge --provider <name> --prompt-file .steel/tmp/specify-iter${N}-gauge-prompt.md --output specs/$SPEC_ID/artifacts/specification/iter${N}-gauge.md`.
+      - If `agy` or `codex`: `steel run-gauge --provider <name> --prompt-file .steel/tmp/specify-iter${N}-gauge-prompt.md --output specs/$SPEC_ID/artifacts/specification/iter${N}-gauge.md`.
 
    h. If the Gauge ran via subagent, save its output to the artifact path:
       ```

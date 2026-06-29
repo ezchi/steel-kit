@@ -11,6 +11,8 @@ export interface GaugeResult {
   rawOutput: string;
   stage: string;
   iteration: number;
+  /** Effective session ID for this review, to resume on the next iteration. */
+  sessionId?: string;
 }
 
 export interface GaugeContext {
@@ -22,6 +24,10 @@ export interface GaugeContext {
   planContent?: string;
   constitution?: string;
   projectRoot: string;
+  /** Session ID to reuse across a stage's iterations (keeps context warm). */
+  sessionId?: string;
+  /** When true, resume the existing `sessionId` instead of starting fresh. */
+  resumeSession?: boolean;
 }
 
 export async function gaugeReview(
@@ -58,9 +64,11 @@ export async function gaugeReview(
   );
   log.info('Waiting for LLM review response...');
 
-  const rawOutput = await provider.invoke(prompt, {
+  const { output: rawOutput, sessionId } = await provider.invoke(prompt, {
     model: config.gauge.model,
     workingDir: ctx.projectRoot,
+    sessionId: ctx.sessionId,
+    resumeSession: ctx.resumeSession,
   });
 
   log.success(`Gauge completed: ${ctx.stage} iteration ${ctx.iteration}`);
@@ -77,6 +85,7 @@ export async function gaugeReview(
     rawOutput,
     stage: ctx.stage,
     iteration: ctx.iteration,
+    sessionId,
   };
 }
 

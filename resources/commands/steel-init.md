@@ -9,6 +9,6 @@ Initialize Steel-Kit in the current project.
 3. Explain what was created:
    - `.steel/` workflow state and configuration
    - Claude Code commands in `.claude/commands/`
-   - Agent skills in `.agents/skills/` (shared by Gemini CLI and Codex)
+   - Agent skills in `.agents/skills/` (shared by Antigravity CLI and Codex)
 
 4. Tell the user the next step is `/steel-constitution`.

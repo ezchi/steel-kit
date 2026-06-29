@@ -11,7 +11,7 @@ import type { SteelConfig } from './config.js';
 function makeConfig(git?: SteelConfig['git']): SteelConfig {
   return {
     forge: { provider: 'claude' },
-    gauge: { provider: 'gemini' },
+    gauge: { provider: 'agy' },
     maxIterations: 5,
     autoCommit: true,
     specsDir: 'specs',
